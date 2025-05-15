@@ -77,13 +77,15 @@ func TestAccCompletionCapabilityResource_withSchemaOutput(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "name", capabilityName),
 					resource.TestCheckResourceAttr(resourceName, "output_type", "schema"),
 					resource.TestCheckResourceAttr(resourceName, "variables.#", "0"), // No variables in this example
-					// Checking schema_def is tricky with DynamicType.
-					// We'd ideally check specific keys if the provider could parse it into a structured way.
-					// For now, just check that it's set.
-					resource.TestCheckResourceAttrSet(resourceName, "schema_def.name.type"),
-					resource.TestCheckResourceAttr(resourceName, "schema_def.name.type", "\"string\""), // Note: these will be JSON strings
-					resource.TestCheckResourceAttr(resourceName, "schema_def.name.description", "\"The name of the user\""),
-					resource.TestCheckResourceAttr(resourceName, "schema_def.age.type", "\"integer\""),
+					// Check that schema_def is set and contains the expected JSON string.
+					// The new schemaDefAPIToMap converts the whole map into a single JSON string stored in types.Dynamic.
+					resource.TestCheckResourceAttr(resourceName, "schema_def", `{`+
+						`"age":{"description":"The age of the user","type":"integer"},`+
+						`"city":{"description":"The city where the user lives","type":"string"},`+
+						`"details":{"description":"Further details","properties":{"hobby":{"description":"User's hobby","type":"string"},"occupation":{"description":"User's occupation","type":"string"}},"type":"object"},`+
+						`"is_student":{"description":"Is the user a student","type":"boolean"},`+
+						`"name":{"description":"The name of the user","type":"string"}`+
+						`}`), // Note: Order of keys in JSON might vary, this could be fragile. A custom check function might be better.
 				),
 			},
 			// Update: Change output_type to text and remove schema_def
@@ -92,7 +94,9 @@ func TestAccCompletionCapabilityResource_withSchemaOutput(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceName, "name", capabilityName),
 					resource.TestCheckResourceAttr(resourceName, "output_type", "text"),
-					resource.TestCheckResourceAttr(resourceName, "schema_def.%", "0"), // Should be empty
+					// When output_type is "text", schema_def should be null.
+					resource.TestCheckResourceAttr(resourceName, "schema_def", ""), // types.DynamicNull() often results in an empty string representation for TestCheckResourceAttr
+					// A more robust check might be resource.TestCheckResourceAttrIsNull if supported and reliable for DynamicType
 				),
 			},
 		},
