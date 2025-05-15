@@ -1,4 +1,4 @@
-module corax-terraform-provider
+module terraform-provider-corax
 
 go 1.23.7
 

@@ -55,7 +55,7 @@ func NewClient(baseURLStr string, apiKey string) (*Client, error) {
 		},
 		BaseURL:   parsedBaseURL,
 		APIKey:    apiKey,
-		UserAgent: "corax-terraform-provider/0.0.1", // TODO: Make version dynamic
+		UserAgent: "terraform-provider-corax/0.0.1", // TODO: Make version dynamic
 	}, nil
 }
 

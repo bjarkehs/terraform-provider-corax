@@ -19,7 +19,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
-	"corax-terraform-provider/internal/coraxclient"
+	"terraform-provider-corax/internal/coraxclient"
 )
 
 // Ensure provider defined types fully satisfy framework interfaces.
@@ -222,11 +222,10 @@ func schemaDefAPIToMap(ctx context.Context, apiSchemaDef map[string]interface{},
 		// Or, attempt to convert to known TF types if possible.
 		// For now, using string representation of JSON.
 		strVal := types.StringValue(string(jsonBytes))
-		dynVal, errDiag := types.DynamicValueFrom(ctx, strVal)
-		diags.Append(errDiag...)
-		if errDiag.HasError() {
-			continue
-		}
+		dynVal := types.DynamicValue(strVal)
+		// The new types.DynamicValue(attr.Value) constructor does not return diags directly.
+		// Potential issues with the conversion would surface when the dynamic value is used or validated.
+		// If strVal itself is problematic, it should be caught earlier or by schema validation.
 		elements[key] = dynVal
 	}
 	mapVal, mapDiags := types.MapValue(types.DynamicType, elements)

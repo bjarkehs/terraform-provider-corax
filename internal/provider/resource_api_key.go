@@ -13,7 +13,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
-	"corax-terraform-provider/internal/coraxclient" // TODO: Adjust if your module name is different
+	"terraform-provider-corax/internal/coraxclient" // TODO: Adjust if your module name is different
 )
 
 // Ensure provider defined types fully satisfy framework interfaces.

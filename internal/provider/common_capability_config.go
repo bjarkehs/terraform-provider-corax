@@ -2,7 +2,9 @@ package provider
 
 import (
 	"context"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 
+	"terraform-provider-corax/internal/coraxclient"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -11,9 +13,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
-
-	"corax-terraform-provider/internal/coraxclient"
 )
 
 // --- Reusable Model Structs for Capability Config ---
@@ -169,7 +168,7 @@ func capabilityConfigModelToAPI(ctx context.Context, modelConfig types.Object, d
 	}
 
 	var cfgModel CapabilityConfigModel
-	respDiags := modelConfig.As(ctx, &cfgModel, basetypes.ObjectAsOptions{AttributeTypes: capabilityConfigAttributeTypes()})
+	respDiags := modelConfig.As(ctx, &cfgModel, basetypes.ObjectAsOptions{})
 	diags.Append(respDiags...)
 	if diags.HasError() {
 		return nil
@@ -191,7 +190,7 @@ func capabilityConfigModelToAPI(ctx context.Context, modelConfig types.Object, d
 
 	if !cfgModel.BlobConfig.IsNull() && !cfgModel.BlobConfig.IsUnknown() {
 		var blobCfgModel BlobConfigModel
-		respDiags := cfgModel.BlobConfig.As(ctx, &blobCfgModel, basetypes.ObjectAsOptions{AttributeTypes: blobConfigAttributeTypes()})
+		respDiags := cfgModel.BlobConfig.As(ctx, &blobCfgModel, basetypes.ObjectAsOptions{})
 		diags.Append(respDiags...)
 		if diags.HasError() {
 			return nil
@@ -224,7 +223,7 @@ func capabilityConfigModelToAPI(ctx context.Context, modelConfig types.Object, d
 
 	if !cfgModel.DataRetention.IsNull() && !cfgModel.DataRetention.IsUnknown() {
 		var drModel DataRetentionModel
-		respDiags := cfgModel.DataRetention.As(ctx, &drModel, basetypes.ObjectAsOptions{AttributeTypes: dataRetentionAttributeTypes()})
+		respDiags := cfgModel.DataRetention.As(ctx, &drModel, basetypes.ObjectAsOptions{})
 		diags.Append(respDiags...)
 		if diags.HasError() {
 			return nil
@@ -234,7 +233,7 @@ func capabilityConfigModelToAPI(ctx context.Context, modelConfig types.Object, d
 		drChanges := false
 		if !drModel.Timed.IsNull() && !drModel.Timed.IsUnknown() {
 			var timedModel TimedDataRetentionModel
-			respDiags := drModel.Timed.As(ctx, &timedModel, basetypes.ObjectAsOptions{AttributeTypes: timedDataRetentionAttributeTypes()})
+			respDiags := drModel.Timed.As(ctx, &timedModel, basetypes.ObjectAsOptions{})
 			diags.Append(respDiags...)
 			if diags.HasError() {
 				return nil
@@ -246,7 +245,7 @@ func capabilityConfigModelToAPI(ctx context.Context, modelConfig types.Object, d
 			drChanges = true
 		} else if !drModel.Infinite.IsNull() && !drModel.Infinite.IsUnknown() {
 			var infModel InfiniteDataRetentionModel
-			respDiags := drModel.Infinite.As(ctx, &infModel, basetypes.ObjectAsOptions{AttributeTypes: infiniteDataRetentionAttributeTypes()})
+			respDiags := drModel.Infinite.As(ctx, &infModel, basetypes.ObjectAsOptions{})
 			diags.Append(respDiags...)
 			if diags.HasError() {
 				return nil

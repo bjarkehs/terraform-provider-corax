@@ -8,7 +8,7 @@ import (
 	"flag"
 	"log"
 
-	"corax-terraform-provider/internal/provider"
+	"terraform-provider-corax/internal/provider"
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 )
 
@@ -31,7 +31,7 @@ func main() {
 		// TODO: Update this string with the published name of your provider.
 		// Also update the tfplugindocs generate command to either remove the
 		// -provider-name flag or set its value to the updated provider name.
-		Address: "registry.terraform.io/hashicorp/scaffolding",
+		Address: "registry.terraform.io/trifork/corax",
 		Debug:   debug,
 	}
 

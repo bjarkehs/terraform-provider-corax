@@ -2,14 +2,11 @@ package provider
 
 import (
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest" // For random strings
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"os"
 	"regexp"
 	"testing"
-	"time"
-
-	"github.com/hashicorp/terraform-plugin-testing/helper/acctest" // For random strings
-	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
-	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 const (

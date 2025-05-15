@@ -16,7 +16,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
-	"corax-terraform-provider/internal/coraxclient" // TODO: Adjust this path if your module name is different
+	"terraform-provider-corax/internal/coraxclient" // TODO: Adjust this path if your module name is different
 )
 
 // Ensure CoraxProvider satisfies various provider interfaces.

@@ -14,7 +14,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
-	"corax-terraform-provider/internal/coraxclient"
+	"terraform-provider-corax/internal/coraxclient"
 )
 
 // Ensure provider defined types fully satisfy framework interfaces.
