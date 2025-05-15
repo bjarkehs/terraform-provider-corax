@@ -5,7 +5,7 @@ package provider
 
 import (
 	"context"
-	"net/http"
+	"os"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/ephemeral"
@@ -14,44 +14,54 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+
+	"corax/internal/coraxclient" // TODO: Adjust this path if your module name is different
 )
 
-// Ensure ScaffoldingProvider satisfies various provider interfaces.
-var _ provider.Provider = &ScaffoldingProvider{}
-var _ provider.ProviderWithFunctions = &ScaffoldingProvider{}
-var _ provider.ProviderWithEphemeralResources = &ScaffoldingProvider{}
+// Ensure CoraxProvider satisfies various provider interfaces.
+var _ provider.Provider = &CoraxProvider{}
+var _ provider.ProviderWithFunctions = &CoraxProvider{}
+var _ provider.ProviderWithEphemeralResources = &CoraxProvider{}
 
-// ScaffoldingProvider defines the provider implementation.
-type ScaffoldingProvider struct {
+// CoraxProvider defines the provider implementation.
+type CoraxProvider struct {
 	// version is set to the provider version on release, "dev" when the
 	// provider is built and ran locally, and "test" when running acceptance
 	// testing.
 	version string
 }
 
-// ScaffoldingProviderModel describes the provider data model.
-type ScaffoldingProviderModel struct {
-	Endpoint types.String `tfsdk:"endpoint"`
+// CoraxProviderModel describes the provider data model.
+type CoraxProviderModel struct {
+	APIEndpoint types.String `tfsdk:"api_endpoint"`
+	APIKey      types.String `tfsdk:"api_key"`
 }
 
-func (p *ScaffoldingProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
-	resp.TypeName = "scaffolding"
+func (p *CoraxProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
+	resp.TypeName = "corax" // Updated TypeName
 	resp.Version = p.version
 }
 
-func (p *ScaffoldingProvider) Schema(ctx context.Context, req provider.SchemaRequest, resp *provider.SchemaResponse) {
+func (p *CoraxProvider) Schema(ctx context.Context, req provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		MarkdownDescription: "Terraform provider for Corax API.",
 		Attributes: map[string]schema.Attribute{
-			"endpoint": schema.StringAttribute{
-				MarkdownDescription: "Example provider attribute",
+			"api_endpoint": schema.StringAttribute{
+				MarkdownDescription: "The endpoint for the Corax API. Can also be set via CORAX_API_ENDPOINT environment variable.",
 				Optional:            true,
+			},
+			"api_key": schema.StringAttribute{
+				MarkdownDescription: "The API Key for the Corax API. Can also be set via CORAX_API_KEY environment variable.",
+				Optional:            true,
+				Sensitive:           true,
 			},
 		},
 	}
 }
 
-func (p *ScaffoldingProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
-	var data ScaffoldingProviderModel
+func (p *CoraxProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
+	var data CoraxProviderModel
 
 	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
 
@@ -59,34 +69,82 @@ func (p *ScaffoldingProvider) Configure(ctx context.Context, req provider.Config
 		return
 	}
 
-	// Configuration values are now available.
-	// if data.Endpoint.IsNull() { /* ... */ }
+	// Read configuration from environment variables if not set in config
+	if data.APIEndpoint.IsNull() || data.APIEndpoint.ValueString() == "" {
+		envEndpoint := os.Getenv("CORAX_API_ENDPOINT")
+		if envEndpoint != "" {
+			data.APIEndpoint = types.StringValue(envEndpoint)
+			tflog.Debug(ctx, "Using CORAX_API_ENDPOINT from environment variable")
+		}
+	}
 
-	// Example client configuration for data sources and resources
-	client := http.DefaultClient
+	if data.APIKey.IsNull() || data.APIKey.ValueString() == "" {
+		envAPIKey := os.Getenv("CORAX_API_KEY")
+		if envAPIKey != "" {
+			data.APIKey = types.StringValue(envAPIKey)
+			tflog.Debug(ctx, "Using CORAX_API_KEY from environment variable")
+		}
+	}
+
+	// Validate required configuration
+	if data.APIEndpoint.IsNull() || data.APIEndpoint.ValueString() == "" {
+		resp.Diagnostics.AddError(
+			"Missing API Endpoint Configuration",
+			"The provider cannot be configured without an API endpoint. "+
+				"Set the api_endpoint attribute in the provider configuration or use the CORAX_API_ENDPOINT environment variable.",
+		)
+	}
+
+	if data.APIKey.IsNull() || data.APIKey.ValueString() == "" {
+		resp.Diagnostics.AddError(
+			"Missing API Key Configuration",
+			"The provider cannot be configured without an API Key. "+
+				"Set the api_key attribute in the provider configuration or use the CORAX_API_KEY environment variable.",
+		)
+	}
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	tflog.Info(ctx, "Configuring Corax API client")
+	tflog.Debug(ctx, "Corax API Endpoint: "+data.APIEndpoint.ValueString())
+	// Do not log API key for security reasons, even at debug level.
+
+	client, err := coraxclient.NewClient(data.APIEndpoint.ValueString(), data.APIKey.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to create Corax API client", err.Error())
+		return
+	}
+
 	resp.DataSourceData = client
 	resp.ResourceData = client
+	tflog.Info(ctx, "Corax API client configured successfully")
 }
 
-func (p *ScaffoldingProvider) Resources(ctx context.Context) []func() resource.Resource {
+func (p *CoraxProvider) Resources(ctx context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
-		NewExampleResource,
+		NewAPIKeyResource,
+		NewProjectResource,
+		NewCollectionResource,
+		NewDocumentResource,
+		NewEmbeddingsModelResource, // Added NewEmbeddingsModelResource
 	}
 }
 
-func (p *ScaffoldingProvider) EphemeralResources(ctx context.Context) []func() ephemeral.EphemeralResource {
+func (p *CoraxProvider) EphemeralResources(ctx context.Context) []func() ephemeral.EphemeralResource { // Updated receiver to CoraxProvider
 	return []func() ephemeral.EphemeralResource{
 		NewExampleEphemeralResource,
 	}
 }
 
-func (p *ScaffoldingProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
+func (p *CoraxProvider) DataSources(ctx context.Context) []func() datasource.DataSource { // Updated receiver to CoraxProvider
 	return []func() datasource.DataSource{
 		NewExampleDataSource,
 	}
 }
 
-func (p *ScaffoldingProvider) Functions(ctx context.Context) []func() function.Function {
+func (p *CoraxProvider) Functions(ctx context.Context) []func() function.Function { // Updated receiver to CoraxProvider
 	return []func() function.Function{
 		NewExampleFunction,
 	}
@@ -94,7 +152,7 @@ func (p *ScaffoldingProvider) Functions(ctx context.Context) []func() function.F
 
 func New(version string) func() provider.Provider {
 	return func() provider.Provider {
-		return &ScaffoldingProvider{
+		return &CoraxProvider{ // Updated to CoraxProvider
 			version: version,
 		}
 	}
