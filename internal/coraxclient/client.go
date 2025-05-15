@@ -339,3 +339,198 @@ func (c *Client) DeleteCapability(ctx context.Context, capabilityID string) erro
 	}
 	return c.doRequest(req, nil) // No body expected on 204
 }
+
+// --- ModelDeployment Methods ---
+
+// CreateModelDeployment creates a new model deployment.
+// Corresponds to POST /v1/model-deployments
+func (c *Client) CreateModelDeployment(ctx context.Context, deploymentData ModelDeploymentCreate) (*ModelDeployment, error) {
+	req, err := c.newRequest(ctx, http.MethodPost, "/v1/model-deployments", deploymentData)
+	if err != nil {
+		return nil, err
+	}
+
+	var createdDeployment ModelDeployment
+	if err := c.doRequest(req, &createdDeployment); err != nil {
+		return nil, err
+	}
+	return &createdDeployment, nil
+}
+
+// GetModelDeployment retrieves a specific model deployment by its ID.
+// Corresponds to GET /v1/model-deployments/{deployment_id}
+func (c *Client) GetModelDeployment(ctx context.Context, deploymentID string) (*ModelDeployment, error) {
+	if strings.TrimSpace(deploymentID) == "" {
+		return nil, fmt.Errorf("deploymentID cannot be empty")
+	}
+	path := fmt.Sprintf("/v1/model-deployments/%s", deploymentID)
+	req, err := c.newRequest(ctx, http.MethodGet, path, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var deployment ModelDeployment
+	if err := c.doRequest(req, &deployment); err != nil {
+		return nil, err
+	}
+	return &deployment, nil
+}
+
+// UpdateModelDeployment updates a specific model deployment by its ID.
+// Corresponds to PUT /v1/model-deployments/{deployment_id}
+func (c *Client) UpdateModelDeployment(ctx context.Context, deploymentID string, deploymentData ModelDeploymentUpdate) (*ModelDeployment, error) {
+	if strings.TrimSpace(deploymentID) == "" {
+		return nil, fmt.Errorf("deploymentID cannot be empty")
+	}
+	path := fmt.Sprintf("/v1/model-deployments/%s", deploymentID)
+	req, err := c.newRequest(ctx, http.MethodPut, path, deploymentData)
+	if err != nil {
+		return nil, err
+	}
+
+	var updatedDeployment ModelDeployment
+	if err := c.doRequest(req, &updatedDeployment); err != nil {
+		return nil, err
+	}
+	return &updatedDeployment, nil
+}
+
+// DeleteModelDeployment deletes a specific model deployment by its ID.
+// Corresponds to DELETE /v1/model-deployments/{deployment_id}
+// Expects a 204 No Content on success.
+func (c *Client) DeleteModelDeployment(ctx context.Context, deploymentID string) error {
+	if strings.TrimSpace(deploymentID) == "" {
+		return fmt.Errorf("deploymentID cannot be empty")
+	}
+	path := fmt.Sprintf("/v1/model-deployments/%s", deploymentID)
+	req, err := c.newRequest(ctx, http.MethodDelete, path, nil)
+	if err != nil {
+		return err
+	}
+	return c.doRequest(req, nil) // No body expected on 204
+}
+
+// --- ModelProvider Methods ---
+
+// CreateModelProvider creates a new model provider.
+// Corresponds to POST /v1/model-providers
+func (c *Client) CreateModelProvider(ctx context.Context, providerData ModelProviderCreate) (*ModelProvider, error) {
+	req, err := c.newRequest(ctx, http.MethodPost, "/v1/model-providers", providerData)
+	if err != nil {
+		return nil, err
+	}
+
+	var createdProvider ModelProvider
+	if err := c.doRequest(req, &createdProvider); err != nil {
+		return nil, err
+	}
+	return &createdProvider, nil
+}
+
+// GetModelProvider retrieves a specific model provider by its ID.
+// Corresponds to GET /v1/model-providers/{provider_id}
+func (c *Client) GetModelProvider(ctx context.Context, providerID string) (*ModelProvider, error) {
+	if strings.TrimSpace(providerID) == "" {
+		return nil, fmt.Errorf("providerID cannot be empty")
+	}
+	path := fmt.Sprintf("/v1/model-providers/%s", providerID)
+	req, err := c.newRequest(ctx, http.MethodGet, path, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var provider ModelProvider
+	if err := c.doRequest(req, &provider); err != nil {
+		return nil, err
+	}
+	return &provider, nil
+}
+
+// UpdateModelProvider updates a specific model provider by its ID.
+// Corresponds to PUT /v1/model-providers/{provider_id}
+func (c *Client) UpdateModelProvider(ctx context.Context, providerID string, providerData ModelProviderUpdate) (*ModelProvider, error) {
+	if strings.TrimSpace(providerID) == "" {
+		return nil, fmt.Errorf("providerID cannot be empty")
+	}
+	path := fmt.Sprintf("/v1/model-providers/%s", providerID)
+	req, err := c.newRequest(ctx, http.MethodPut, path, providerData)
+	if err != nil {
+		return nil, err
+	}
+
+	var updatedProvider ModelProvider
+	if err := c.doRequest(req, &updatedProvider); err != nil {
+		return nil, err
+	}
+	return &updatedProvider, nil
+}
+
+// DeleteModelProvider deletes a specific model provider by its ID.
+// Corresponds to DELETE /v1/model-providers/{provider_id}
+// Expects a 204 No Content on success.
+func (c *Client) DeleteModelProvider(ctx context.Context, providerID string) error {
+	if strings.TrimSpace(providerID) == "" {
+		return fmt.Errorf("providerID cannot be empty")
+	}
+	path := fmt.Sprintf("/v1/model-providers/%s", providerID)
+	req, err := c.newRequest(ctx, http.MethodDelete, path, nil)
+	if err != nil {
+		return err
+	}
+	return c.doRequest(req, nil) // No body expected on 204
+}
+
+// --- CapabilityType Methods ---
+
+// GetCapabilityType retrieves a specific capability type definition.
+// Corresponds to GET /v1/capability-types/{capability_type}
+func (c *Client) GetCapabilityType(ctx context.Context, capabilityType string) (*CapabilityTypeRepresentation, error) {
+	if strings.TrimSpace(capabilityType) == "" {
+		return nil, fmt.Errorf("capabilityType cannot be empty")
+	}
+	path := fmt.Sprintf("/v1/capability-types/%s", capabilityType)
+	req, err := c.newRequest(ctx, http.MethodGet, path, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var capTypeRep CapabilityTypeRepresentation
+	if err := c.doRequest(req, &capTypeRep); err != nil {
+		return nil, err
+	}
+	return &capTypeRep, nil
+}
+
+// SetCapabilityTypeDefaultModel sets the default model deployment for a capability type.
+// Corresponds to PUT /v1/capability-types/{capability_type}
+func (c *Client) SetCapabilityTypeDefaultModel(ctx context.Context, capabilityType string, data DefaultModelDeploymentUpdate) (*CapabilityTypeRepresentation, error) {
+	if strings.TrimSpace(capabilityType) == "" {
+		return nil, fmt.Errorf("capabilityType cannot be empty")
+	}
+	path := fmt.Sprintf("/v1/capability-types/%s", capabilityType)
+	req, err := c.newRequest(ctx, http.MethodPut, path, data)
+	if err != nil {
+		return nil, err
+	}
+
+	var capTypeRep CapabilityTypeRepresentation
+	if err := c.doRequest(req, &capTypeRep); err != nil {
+		return nil, err
+	}
+	return &capTypeRep, nil
+}
+
+// ListCapabilityTypes retrieves all capability type definitions.
+// Corresponds to GET /v1/capability-types
+func (c *Client) ListCapabilityTypes(ctx context.Context) (*CapabilityTypesRepresentation, error) {
+	req, err := c.newRequest(ctx, http.MethodGet, "/v1/capability-types", nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var capTypesRep CapabilityTypesRepresentation
+	if err := c.doRequest(req, &capTypesRep); err != nil {
+		return nil, err
+	}
+	return &capTypesRep, nil
+}

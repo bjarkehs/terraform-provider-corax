@@ -125,3 +125,26 @@ type CompletionCapabilityUpdate struct {
 	OutputType       *string                `json:"output_type,omitempty"`
 	SchemaDef        map[string]interface{} `json:"schema_def,omitempty"`
 }
+
+// --- Capability Type Specific Structures ---
+
+// DefaultModelDeploymentUpdate maps to components.schemas.DefaultModelDeploymentUpdate
+type DefaultModelDeploymentUpdate struct {
+	DefaultModelDeploymentID string `json:"default_model_deployment_id"`
+}
+
+// CapabilityTypeRepresentation maps to components.schemas.CapabilityTypeRepresentation
+type CapabilityTypeRepresentation struct {
+	// Links map[string]HateoasLink `json:"_links,omitempty"`
+	ID                       string  `json:"id"` // This is the capability_type string like "chat"
+	Name                     string  `json:"name"` // Display name like "Chat"
+	DefaultModelDeploymentID *string `json:"default_model_deployment_id,omitempty"`
+	// Embedded map[string]ModelDeployment `json:"_embedded,omitempty"` // Assuming ModelDeployment is defined elsewhere
+}
+
+// CapabilityTypesRepresentation maps to components.schemas.CapabilityTypesRepresentation
+// Used for GET /v1/capability-types
+type CapabilityTypesRepresentation struct {
+	// Links   map[string]HateoasLink         `json:"_links,omitempty"`
+	Embedded []CapabilityTypeRepresentation `json:"_embedded"`
+}

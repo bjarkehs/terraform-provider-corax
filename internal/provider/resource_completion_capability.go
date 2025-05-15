@@ -133,63 +133,11 @@ func (r *CompletionCapabilityResource) Schema(ctx context.Context, req resource.
 	}
 }
 
-// Helper function to get config attributes (can be shared or duplicated from chat_capability)
-// For now, assuming it's available or will be moved to a common place.
-// capabilityConfigSchemaAttributes should be defined in a common place or copied from chat_capability_resource.go
-// For now, we assume it's accessible. If not, the schema definition for "config" will fail.
-// To make this self-contained for now, let's quickly define it here.
-// In a refactor, this would move to a shared file.
-func capabilityConfigSchemaAttributes() map[string]schema.Attribute {
-	// This is a simplified version. A real one would use the models from chat_capability.go
-	// and the associated attribute type functions.
-	// For the purpose of this file compiling, this is a minimal stub.
-	// The actual implementation should reuse the one from resource_chat_capability.go
-	// or a shared one.
-	return map[string]schema.Attribute{
-		"temperature":     schema.Float64Attribute{Optional: true},
-		"content_tracing": schema.BoolAttribute{Optional: true, Computed: true},
-		"blob_config": schema.SingleNestedAttribute{
-			Optional:   true,
-			Attributes: blobConfigAttributeTypes(), // Assumes this function is available (defined in chat_capability.go or common)
-		},
-		"data_retention": schema.SingleNestedAttribute{
-			Optional:   true,
-			Attributes: dataRetentionAttributeTypes(), // Assumes this function is available
-		},
-	}
-}
+// capabilityConfigSchemaAttributes, capabilityConfigModelToAPI, capabilityConfigAPItoModel
+// and their underlying attribute type helpers are defined in common_capability_config.go
+// No need to redefine them here.
 
-// Placeholder for attribute type functions - these should be in common or chat_capability.go
-func blobConfigAttributeTypes() map[string]attr.Type {
-	return map[string]attr.Type{
-		"max_file_size_mb":   types.Int64Type,
-		"max_blobs":          types.Int64Type,
-		"allowed_mime_types": types.ListType{ElemType: types.StringType},
-	}
-}
-func dataRetentionAttributeTypes() map[string]attr.Type {
-	return map[string]attr.Type{
-		"timed":    types.ObjectType{AttrTypes: timedDataRetentionAttributeTypes()},
-		"infinite": types.ObjectType{AttrTypes: infiniteDataRetentionAttributeTypes()},
-	}
-}
-func timedDataRetentionAttributeTypes() map[string]attr.Type {
-	return map[string]attr.Type{"hours": types.Int64Type}
-}
-func infiniteDataRetentionAttributeTypes() map[string]attr.Type {
-	return map[string]attr.Type{"enabled": types.BoolType}
-}
-func capabilityConfigAttributeTypes() map[string]attr.Type {
-    return map[string]attr.Type{
-        "temperature":     types.Float64Type,
-        "blob_config":     types.ObjectType{AttrTypes: blobConfigAttributeTypes()},
-        "data_retention":  types.ObjectType{AttrTypes: dataRetentionAttributeTypes()},
-        "content_tracing": types.BoolType,
-    }
-}
-
-
-// --- Helper functions for mapping ---
+// --- Helper functions for mapping (specific to Completion Capability) ---
 
 func schemaDefMapToAPI(ctx context.Context, schemaDefMap types.Map, diags *diag.Diagnostics) map[string]interface{} {
 	if schemaDefMap.IsNull() || schemaDefMap.IsUnknown() {
