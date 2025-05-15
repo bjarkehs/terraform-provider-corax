@@ -57,38 +57,38 @@ resource "corax_chat_capability" "configured_chat" {
 
 The following arguments are supported:
 
-- `name` - (Required, String) A user-defined name for the chat capability. Must be at least 1 character long.
-- `system_prompt` - (Required, String) The system prompt that guides the behavior of the chat model.
-- `is_public` - (Optional, Boolean) Indicates whether the capability is publicly accessible. Defaults to `false`.
-- `model_id` - (Optional, String) The UUID of the model deployment to use for this capability. If not provided, a default model for 'chat' type may be used by the API.
-- `project_id` - (Optional, String) The UUID of the project this capability belongs to. If not provided, it might be associated with a default or no project.
-- `config` - (Optional, Block) Configuration settings for the capability's behavior. See [Config Block](#config-block) below.
+- `name` - (String, Required) A user-defined name for the chat capability. Must be at least 1 character long.
+- `system_prompt` - (String, Required) The system prompt that guides the behavior of the chat model.
+- `is_public` - (Boolean, Optional) Indicates whether the capability is publicly accessible. Defaults to `false`.
+- `model_id` - (String, Optional) The UUID of an existing [Model Deployment](./model_deployment.md) to use for this capability. If not provided, a default model for the 'chat' type may be used by the API.
+- `project_id` - (String, Optional) The UUID of an existing [Project](./project.md) this capability belongs to.
+- `config` - (Block, Optional) Configuration settings for the capability's behavior. See [Config Block](#config-block) below.
 
 ### Config Block
 
 The `config` block supports the following:
 
-- `temperature` - (Optional, Number) Controls randomness in response generation (0.0 to 1.0). Higher values make output more random.
-- `content_tracing` - (Optional, Boolean) Whether content (prompts, completion data, variables) should be recorded in observability systems. Defaults to `true`. Automatically set to `false` by the API if `data_retention` is `timed`.
-- `blob_config` - (Optional, Block) Configuration for handling file uploads (blobs) if the capability supports it. See [Blob Config Block](#blob-config-block) below.
-- `data_retention` - (Optional, Block) Defines how long execution input and output data should be kept. Must define exactly one of `timed` or `infinite`. See [Data Retention Block](#data-retention-block) below.
+- `temperature` - (Number, Optional) Controls randomness in response generation (0.0 to 1.0). Higher values make output more random.
+- `content_tracing` - (Boolean, Optional) Whether content (prompts, completion data, variables) should be recorded in observability systems. Defaults to `true`. Automatically set to `false` by the API if `data_retention` is `timed`.
+- `blob_config` - (Block, Optional) Configuration for handling file uploads (blobs) if the capability supports it. See [Blob Config Block](#blob-config-block) below.
+- `data_retention` - (Block, Optional) Defines how long execution input and output data should be kept. Must define exactly one of `timed` or `infinite`. See [Data Retention Block](#data-retention-block) below.
 
 ### Blob Config Block
 
 The `blob_config` block supports the following:
 
-- `max_file_size_mb` - (Optional, Number) Maximum file size in megabytes for uploaded blobs. Defaults to API defined value (e.g., 20MB).
-- `max_blobs` - (Optional, Number) Maximum number of blobs that can be uploaded. Defaults to API defined value (e.g., 10).
-- `allowed_mime_types` - (Optional, List of String) List of allowed MIME types for uploaded blobs. Defaults to API defined value (e.g., `["image/png", "image/jpeg"]`).
+- `max_file_size_mb` - (Number, Optional) Maximum file size in megabytes for uploaded blobs. If not set, defaults to the API's defined value (e.g., 20MB).
+- `max_blobs` - (Number, Optional) Maximum number of blobs that can be uploaded. If not set, defaults to the API's defined value (e.g., 10).
+- `allowed_mime_types` - (List of String, Optional) List of allowed MIME types for uploaded blobs. If not set, defaults to the API's defined value (e.g., `["image/png", "image/jpeg"]`).
 
 ### Data Retention Block
 
 The `data_retention` block must configure exactly one of the following nested blocks:
 
-- `timed` - (Block) Retain data for a specific duration.
-  - `hours` - (Required, Number) Duration in hours to retain data (minimum 1).
-- `infinite` - (Block) Retain data indefinitely.
-  - `enabled` - (Required, Boolean) Set to `true` to enable infinite data retention. This field must be explicitly set to `true`.
+- `timed` - (Block, Optional) Retain data for a specific duration.
+  - `hours` - (Number, Required) Duration in hours to retain data (minimum 1).
+- `infinite` - (Block, Optional) Retain data indefinitely.
+  - `enabled` - (Boolean, Required) Set to `true` to enable infinite data retention. This field must be explicitly set to `true`.
 
 ## Attribute Reference
 
@@ -100,7 +100,7 @@ In addition to all arguments above, the following attributes are exported:
 - `updated_by` - (String) User who last updated the capability.
 - `created_at` - (String) Creation timestamp.
 - `updated_at` - (String) Last update timestamp.
-- `archived_at` - (String) Archival timestamp, if applicable.
+- `archived_at` - (String, Nullable) Archival timestamp, if applicable.
 - `owner` - (String) Owner of the capability.
 
 ## Import

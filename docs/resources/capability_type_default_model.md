@@ -58,8 +58,8 @@ resource "corax_capability_type_default_model" "completion_default" {
 
 The following arguments are supported:
 
-- `capability_type` - (Required, String, Forces new resource) The type of the capability for which to set the default model. Allowed values are `chat`, `completion`, `embedding`. Changing this attribute will result in the destruction and recreation of the resource, as it identifies a different capability type's default setting.
-- `default_model_deployment_id` - (Required, String) The UUID of an existing [Model Deployment](./model_deployment.md) to set as the default for this `capability_type`.
+- `capability_type` - (String, Required, Forces new resource) The type of the capability for which to set the default model. Allowed values are `chat`, `completion`, `embedding`. Changing this attribute will result in the destruction and recreation of the resource, as it identifies a different capability type's default setting.
+- `default_model_deployment_id` - (String, Required) The UUID of an existing [Model Deployment](./model_deployment.md) to set as the default for this `capability_type`.
 
 ## Attribute Reference
 

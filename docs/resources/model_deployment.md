@@ -46,12 +46,12 @@ resource "corax_model_deployment" "my_embedding_model" {
 
 The following arguments are supported:
 
-- `name` - (Required, String) A user-defined name for the model deployment. Must be at least 1 character long.
-- `provider_id` - (Required, String) The UUID of the [Model Provider](./model_provider.md) this deployment belongs to.
-- `supported_tasks` - (Required, List of String) A list of tasks this model deployment supports. Allowed values include `chat`, `completion`, `embedding`.
-- `configuration` - (Required, Map of String to String) Configuration key-value pairs specific to the model deployment. These are passed to the underlying model provider. Common keys include `model_name`. For Azure OpenAI, you might also need `api_version` and `deployment_name`. Refer to your Model Provider's requirements.
-- `description` - (Optional, String) An optional description for the model deployment.
-- `is_active` - (Optional, Boolean) Indicates whether the model deployment is active and usable. Defaults to `true`.
+- `name` - (String, Required) A user-defined name for the model deployment. Must be at least 1 character long.
+- `provider_id` - (String, Required) The UUID of the [Model Provider](./model_provider.md) this deployment belongs to.
+- `supported_tasks` - (List of String, Required) A list of tasks this model deployment supports. Allowed values are `chat`, `completion`, `embedding`.
+- `configuration` - (Map of String to String, Required) Configuration key-value pairs specific to the model deployment. These are passed to the underlying model provider. Common keys include `model_name`. For Azure OpenAI, you might also need `api_version` and `deployment_name`. Refer to your Model Provider's requirements.
+- `description` - (String, Optional) An optional description for the model deployment. Defaults to null if not provided.
+- `is_active` - (Boolean, Optional) Indicates whether the model deployment is active and usable. Defaults to `true`.
 
 ## Attribute Reference
 
@@ -59,9 +59,9 @@ In addition to all arguments above, the following attributes are exported:
 
 - `id` - (String) The unique identifier for the model deployment (UUID).
 - `created_at` - (String) Creation timestamp of the model deployment.
-- `updated_at` - (String) Last update timestamp of the model deployment.
+- `updated_at` - (String, Nullable) Last update timestamp of the model deployment.
 - `created_by` - (String) User who created the model deployment.
-- `updated_by` - (String) User who last updated the model deployment.
+- `updated_by` - (String, Nullable) User who last updated the model deployment.
 
 ## Import
 

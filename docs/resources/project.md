@@ -1,4 +1,4 @@
-# Corax Project Resource (`corax_project`)
+# corax_project Resource
 
 Manages a Corax Project. Projects are used as containers to organize knowledge collections and capabilities within the Corax platform.
 
@@ -27,9 +27,9 @@ resource "corax_project" "public_demos" {
 
 The following arguments are supported:
 
-- `name` - (Required|String) The name of the project. Must be at least 1 character long.
-- `description` - (Optional|String) An optional description for the project.
-- `is_public` - (Optional|Boolean) Indicates whether the project is public. If not specified, defaults to `false` (private).
+- `name` - (String, Required) The name of the project. Must be at least 1 character long.
+- `description` - (String, Optional) An optional description for the project. Defaults to null if not provided.
+- `is_public` - (Boolean, Optional) Indicates whether the project is public. If not specified, defaults to `false` (private).
 
 ## Attribute Reference
 
@@ -37,9 +37,9 @@ In addition to all arguments above, the following attributes are exported:
 
 - `id` - (String) The unique identifier (UUID) for the project.
 - `created_by` - (String) The identifier of the user or entity that created the project.
-- `updated_by` - (String) The identifier of the user or entity that last updated the project. This may be null.
+- `updated_by` - (String, Nullable) The identifier of the user or entity that last updated the project.
 - `created_at` - (String) The timestamp (RFC3339 format) when the project was created.
-- `updated_at` - (String) The timestamp (RFC3339 format) when the project was last updated. This may be null if the project has not been updated.
+- `updated_at` - (String, Nullable) The timestamp (RFC3339 format) when the project was last updated.
 - `owner` - (String) The owner of the project.
 - `collection_count` - (Number) The number of knowledge collections currently associated with this project.
 - `capability_count` - (Number) The number of capabilities (e.g., models, functions) currently associated with this project.

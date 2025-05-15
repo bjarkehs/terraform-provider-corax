@@ -68,25 +68,25 @@ resource "corax_completion_capability" "structured_data_extractor" {
 
 The following arguments are supported:
 
-- `name` - (Required, String) A user-defined name for the completion capability. Must be at least 1 character long.
-- `system_prompt` - (Required, String) The system prompt that provides context or instructions to the completion model.
-- `completion_prompt` - (Required, String) The main prompt for which a completion is generated. May include placeholders for variables (e.g., `{{MyVariable}}`).
-- `output_type` - (Required, String) Defines the expected output format. Must be either `text` or `schema`.
-- `is_public` - (Optional, Boolean) Indicates whether the capability is publicly accessible. Defaults to `false`.
-- `model_id` - (Optional, String) The UUID of the model deployment to use for this capability. If not provided, a default model for 'completion' type may be used by the API.
-- `project_id` - (Optional, String) The UUID of the project this capability belongs to.
-- `variables` - (Optional, List of String) A list of variable names (strings) that can be interpolated into the `completion_prompt`.
-- `schema_def` - (Optional, Map of String to Dynamic) Defines the structure of the output when `output_type` is `schema`. This is a map where keys are property names and values are **JSON encoded strings** defining the property's type, description, and potentially nested properties (for object types) or item types (for array types). This argument is **required** if `output_type` is `schema`.
-- `config` - (Optional, Block) Configuration settings for the capability's behavior. See [Config Block](#config-block) below. (Identical to the config block in `corax_chat_capability`).
+- `name` - (String, Required) A user-defined name for the completion capability. Must be at least 1 character long.
+- `system_prompt` - (String, Required) The system prompt that provides context or instructions to the completion model.
+- `completion_prompt` - (String, Required) The main prompt for which a completion is generated. May include placeholders for variables (e.g., `{{MyVariable}}`).
+- `output_type` - (String, Required) Defines the expected output format. Must be either `text` or `schema`.
+- `is_public` - (Boolean, Optional) Indicates whether the capability is publicly accessible. Defaults to `false`.
+- `model_id` - (String, Optional) The UUID of an existing [Model Deployment](./model_deployment.md) to use for this capability. If not provided, a default model for the 'completion' type may be used by the API.
+- `project_id` - (String, Optional) The UUID of an existing [Project](./project.md) this capability belongs to.
+- `variables` - (List of String, Optional) A list of variable names (strings) that can be interpolated into the `completion_prompt`.
+- `schema_def` - (Map of String to Dynamic, Optional) Defines the structure of the output when `output_type` is `schema`. This is a map where keys are property names and values are **JSON encoded strings** defining the property's type, description, and potentially nested properties (for object types) or item types (for array types). This argument is **required** if `output_type` is `schema`.
+- `config` - (Block, Optional) Configuration settings for the capability's behavior. See [Config Block](#config-block) below. (Identical to the config block in `corax_chat_capability`).
 
 ### Config Block
 
-The `config` block supports the following (refer to `corax_chat_capability` documentation for details on sub-blocks like `blob_config` and `data_retention`):
+The `config` block supports the following (refer to [`corax_chat_capability`](./chat_capability.md#config-block) documentation for details on sub-blocks like `blob_config` and `data_retention`):
 
-- `temperature` - (Optional, Number)
-- `content_tracing` - (Optional, Boolean)
-- `blob_config` - (Optional, Block)
-- `data_retention` - (Optional, Block)
+- `temperature` - (Number, Optional)
+- `content_tracing` - (Boolean, Optional)
+- `blob_config` - (Block, Optional)
+- `data_retention` - (Block, Optional)
 
 ## Attribute Reference
 
@@ -98,7 +98,7 @@ In addition to all arguments above, the following attributes are exported:
 - `updated_by` - (String) User who last updated the capability.
 - `created_at` - (String) Creation timestamp.
 - `updated_at` - (String) Last update timestamp.
-- `archived_at` - (String) Archival timestamp, if applicable.
+- `archived_at` - (String, Nullable) Archival timestamp, if applicable.
 - `owner` - (String) Owner of the capability.
 
 ## Import

@@ -39,9 +39,9 @@ resource "corax_model_provider" "my_openai" {
 
 The following arguments are supported:
 
-- `name` - (Required, String) A user-defined name for this model provider configuration (e.g., "Primary Azure OpenAI", "OpenAI GPT-4").
-- `provider_type` - (Required, String) The type of the model provider. This string must match one of the types supported by your Corax API instance (e.g., `azure_openai`, `openai`, `bedrock`, `anthropic_claude`). You can typically get a list of available types via the `/v1/model-provider-types` API endpoint.
-- `configuration` - (Required, Map of String to String, Sensitive) A map of key-value pairs specific to the `provider_type`. This is where you'll put API keys, base URLs, and other necessary credentials or settings.
+- `name` - (String, Required) A user-defined name for this model provider configuration (e.g., "Primary Azure OpenAI", "OpenAI GPT-4").
+- `provider_type` - (String, Required) The type of the model provider. This string must match one of the types supported by your Corax API instance (e.g., `azure_openai`, `openai`, `bedrock`, `anthropic_claude`). You can typically get a list of available types via the `/v1/model-provider-types` API endpoint.
+- `configuration` - (Map of String to String, Required, Sensitive) A map of key-value pairs specific to the `provider_type`. This is where you'll put API keys, base URLs, and other necessary credentials or settings.
   - **Important:** Since this map often contains sensitive values like API keys, the entire map is marked as sensitive.
   - The exact keys required depend on the `provider_type`. Refer to the Corax API documentation or the `/v1/model-provider-types/{provider_type}/model-provider-configuration` endpoint for the expected configuration schema for a given type.
   - Common examples:
@@ -54,9 +54,9 @@ In addition to all arguments above, the following attributes are exported:
 
 - `id` - (String) The unique identifier for the model provider (UUID).
 - `created_at` - (String) Creation timestamp of the model provider.
-- `updated_at` - (String) Last update timestamp of the model provider.
+- `updated_at` - (String, Nullable) Last update timestamp of the model provider.
 - `created_by` - (String) User who created the model provider.
-- `updated_by` - (String) User who last updated the model provider.
+- `updated_by` - (String, Nullable) User who last updated the model provider.
 
 ## Import
 
