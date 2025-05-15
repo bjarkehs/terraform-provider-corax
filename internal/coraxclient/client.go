@@ -264,211 +264,75 @@ func (c *Client) DeleteProject(ctx context.Context, projectID string) error {
 	return c.doRequest(req, nil) // No body expected on 204
 }
 
-// --- Collection Methods ---
+// --- Collection Methods --- (REMOVED)
+// --- Document Methods --- (REMOVED)
+// --- Embeddings Model Methods --- (REMOVED)
 
-// CreateCollection creates a new collection.
-// Corresponds to POST /v1/collections
-func (c *Client) CreateCollection(ctx context.Context, collectionData CollectionCreate) (*Collection, error) {
-	req, err := c.newRequest(ctx, http.MethodPost, "/v1/collections", collectionData)
+// --- Capability Methods ---
+
+// CreateCapability creates a new capability.
+// The payload should be either ChatCapabilityCreate or CompletionCapabilityCreate.
+// Corresponds to POST /v1/capabilities
+func (c *Client) CreateCapability(ctx context.Context, capabilityData interface{}) (*CapabilityRepresentation, error) {
+	req, err := c.newRequest(ctx, http.MethodPost, "/v1/capabilities", capabilityData)
 	if err != nil {
 		return nil, err
 	}
 
-	var createdCollection Collection
-	if err := c.doRequest(req, &createdCollection); err != nil {
+	var createdCapability CapabilityRepresentation
+	if err := c.doRequest(req, &createdCapability); err != nil {
 		return nil, err
 	}
-	return &createdCollection, nil
+	return &createdCapability, nil
 }
 
-// GetCollection retrieves a specific collection by its ID.
-// Corresponds to GET /v1/collections/{collection_id}
-func (c *Client) GetCollection(ctx context.Context, collectionID string) (*Collection, error) {
-	if strings.TrimSpace(collectionID) == "" {
-		return nil, fmt.Errorf("collectionID cannot be empty")
+// GetCapability retrieves a specific capability by its ID.
+// Corresponds to GET /v1/capabilities/{capability_id}
+func (c *Client) GetCapability(ctx context.Context, capabilityID string) (*CapabilityRepresentation, error) {
+	if strings.TrimSpace(capabilityID) == "" {
+		return nil, fmt.Errorf("capabilityID cannot be empty")
 	}
-	path := fmt.Sprintf("/v1/collections/%s", collectionID)
+	path := fmt.Sprintf("/v1/capabilities/%s", capabilityID)
 	req, err := c.newRequest(ctx, http.MethodGet, path, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	var collection Collection
-	if err := c.doRequest(req, &collection); err != nil {
+	var capability CapabilityRepresentation
+	if err := c.doRequest(req, &capability); err != nil {
 		return nil, err
 	}
-	return &collection, nil
+	return &capability, nil
 }
 
-// UpdateCollection updates a specific collection by its ID.
-// Corresponds to PUT /v1/collections/{collection_id}
-func (c *Client) UpdateCollection(ctx context.Context, collectionID string, collectionData CollectionUpdate) (*Collection, error) {
-	if strings.TrimSpace(collectionID) == "" {
-		return nil, fmt.Errorf("collectionID cannot be empty")
+// UpdateCapability updates a specific capability by its ID.
+// The payload should be either ChatCapabilityUpdate or CompletionCapabilityUpdate.
+// Corresponds to PUT /v1/capabilities/{capability_id}
+func (c *Client) UpdateCapability(ctx context.Context, capabilityID string, capabilityData interface{}) (*CapabilityRepresentation, error) {
+	if strings.TrimSpace(capabilityID) == "" {
+		return nil, fmt.Errorf("capabilityID cannot be empty")
 	}
-	path := fmt.Sprintf("/v1/collections/%s", collectionID)
-	req, err := c.newRequest(ctx, http.MethodPut, path, collectionData)
+	path := fmt.Sprintf("/v1/capabilities/%s", capabilityID)
+	req, err := c.newRequest(ctx, http.MethodPut, path, capabilityData)
 	if err != nil {
 		return nil, err
 	}
 
-	var updatedCollection Collection
-	if err := c.doRequest(req, &updatedCollection); err != nil {
+	var updatedCapability CapabilityRepresentation
+	if err := c.doRequest(req, &updatedCapability); err != nil {
 		return nil, err
 	}
-	return &updatedCollection, nil
+	return &updatedCapability, nil
 }
 
-// DeleteCollection deletes a specific collection by its ID.
-// Corresponds to DELETE /v1/collections/{collection_id}
+// DeleteCapability deletes a specific capability by its ID.
+// Corresponds to DELETE /v1/capabilities/{capability_id}
 // Expects a 204 No Content on success.
-func (c *Client) DeleteCollection(ctx context.Context, collectionID string) error {
-	if strings.TrimSpace(collectionID) == "" {
-		return fmt.Errorf("collectionID cannot be empty")
+func (c *Client) DeleteCapability(ctx context.Context, capabilityID string) error {
+	if strings.TrimSpace(capabilityID) == "" {
+		return fmt.Errorf("capabilityID cannot be empty")
 	}
-	path := fmt.Sprintf("/v1/collections/%s", collectionID)
-	req, err := c.newRequest(ctx, http.MethodDelete, path, nil)
-	if err != nil {
-		return err
-	}
-	return c.doRequest(req, nil) // No body expected on 204
-}
-
-// --- Document Methods ---
-
-// UpsertDocument creates or updates a document within a collection.
-// Corresponds to PUT /v1/collections/{collection_id}/documents/{document_id}
-// The API returns the created/updated document.
-func (c *Client) UpsertDocument(ctx context.Context, collectionID string, documentID string, documentData DocumentUpdate) (*Document, error) {
-	if strings.TrimSpace(collectionID) == "" {
-		return nil, fmt.Errorf("collectionID cannot be empty")
-	}
-	if strings.TrimSpace(documentID) == "" {
-		return nil, fmt.Errorf("documentID cannot be empty")
-	}
-
-	path := fmt.Sprintf("/v1/collections/%s/documents/%s", collectionID, documentID)
-	req, err := c.newRequest(ctx, http.MethodPut, path, documentData)
-	if err != nil {
-		return nil, err
-	}
-
-	var upsertedDocument Document
-	if err := c.doRequest(req, &upsertedDocument); err != nil {
-		return nil, err
-	}
-	// The API response for a document doesn't include collection_id, add it for context.
-	upsertedDocument.CollectionID = collectionID
-	return &upsertedDocument, nil
-}
-
-// GetDocument retrieves a specific document by its collection ID and document ID.
-// Corresponds to GET /v1/collections/{collection_id}/documents/{document_id}
-func (c *Client) GetDocument(ctx context.Context, collectionID string, documentID string) (*Document, error) {
-	if strings.TrimSpace(collectionID) == "" {
-		return nil, fmt.Errorf("collectionID cannot be empty")
-	}
-	if strings.TrimSpace(documentID) == "" {
-		return nil, fmt.Errorf("documentID cannot be empty")
-	}
-
-	path := fmt.Sprintf("/v1/collections/%s/documents/%s", collectionID, documentID)
-	req, err := c.newRequest(ctx, http.MethodGet, path, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	var document Document
-	if err := c.doRequest(req, &document); err != nil {
-		return nil, err
-	}
-	// The API response for a document doesn't include collection_id, add it for context.
-	document.CollectionID = collectionID
-	return &document, nil
-}
-
-// DeleteDocument deletes a specific document by its collection ID and document ID.
-// Corresponds to DELETE /v1/collections/{collection_id}/documents/{document_id}
-// Expects a 204 No Content on success.
-func (c *Client) DeleteDocument(ctx context.Context, collectionID string, documentID string) error {
-	if strings.TrimSpace(collectionID) == "" {
-		return fmt.Errorf("collectionID cannot be empty")
-	}
-	if strings.TrimSpace(documentID) == "" {
-		return fmt.Errorf("documentID cannot be empty")
-	}
-
-	path := fmt.Sprintf("/v1/collections/%s/documents/%s", collectionID, documentID)
-	req, err := c.newRequest(ctx, http.MethodDelete, path, nil)
-	if err != nil {
-		return err
-	}
-	return c.doRequest(req, nil) // No body expected on 204
-}
-
-// --- Embeddings Model Methods ---
-
-// CreateEmbeddingsModel creates a new embeddings model.
-// Corresponds to POST /v1/embeddings-models
-func (c *Client) CreateEmbeddingsModel(ctx context.Context, modelData EmbeddingsModelCreate) (*EmbeddingsModel, error) {
-	req, err := c.newRequest(ctx, http.MethodPost, "/v1/embeddings-models", modelData)
-	if err != nil {
-		return nil, err
-	}
-
-	var createdModel EmbeddingsModel
-	if err := c.doRequest(req, &createdModel); err != nil {
-		return nil, err
-	}
-	return &createdModel, nil
-}
-
-// GetEmbeddingsModel retrieves a specific embeddings model by its ID.
-// Corresponds to GET /v1/embeddings-models/{model_id}
-func (c *Client) GetEmbeddingsModel(ctx context.Context, modelID string) (*EmbeddingsModel, error) {
-	if strings.TrimSpace(modelID) == "" {
-		return nil, fmt.Errorf("modelID cannot be empty")
-	}
-	path := fmt.Sprintf("/v1/embeddings-models/%s", modelID)
-	req, err := c.newRequest(ctx, http.MethodGet, path, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	var model EmbeddingsModel
-	if err := c.doRequest(req, &model); err != nil {
-		return nil, err
-	}
-	return &model, nil
-}
-
-// UpdateEmbeddingsModel updates a specific embeddings model by its ID.
-// Corresponds to PUT /v1/embeddings-models/{model_id}
-func (c *Client) UpdateEmbeddingsModel(ctx context.Context, modelID string, modelData EmbeddingsModelUpdate) (*EmbeddingsModel, error) {
-	if strings.TrimSpace(modelID) == "" {
-		return nil, fmt.Errorf("modelID cannot be empty")
-	}
-	path := fmt.Sprintf("/v1/embeddings-models/%s", modelID)
-	req, err := c.newRequest(ctx, http.MethodPut, path, modelData)
-	if err != nil {
-		return nil, err
-	}
-
-	var updatedModel EmbeddingsModel
-	if err := c.doRequest(req, &updatedModel); err != nil {
-		return nil, err
-	}
-	return &updatedModel, nil
-}
-
-// DeleteEmbeddingsModel deletes a specific embeddings model by its ID.
-// Corresponds to DELETE /v1/embeddings-models/{model_id}
-// Expects a 204 No Content on success.
-func (c *Client) DeleteEmbeddingsModel(ctx context.Context, modelID string) error {
-	if strings.TrimSpace(modelID) == "" {
-		return fmt.Errorf("modelID cannot be empty")
-	}
-	path := fmt.Sprintf("/v1/embeddings-models/%s", modelID)
+	path := fmt.Sprintf("/v1/capabilities/%s", capabilityID)
 	req, err := c.newRequest(ctx, http.MethodDelete, path, nil)
 	if err != nil {
 		return err

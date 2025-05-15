@@ -126,9 +126,11 @@ func (p *CoraxProvider) Resources(ctx context.Context) []func() resource.Resourc
 	return []func() resource.Resource{
 		NewAPIKeyResource,
 		NewProjectResource,
-		NewCollectionResource,
-		NewDocumentResource,
-		NewEmbeddingsModelResource, // Added NewEmbeddingsModelResource
+		NewChatCapabilityResource,    // Added Chat Capability
+		NewCompletionCapabilityResource, // Added Completion Capability
+		// NewCollectionResource, // Removed as per new scope
+		// NewDocumentResource,   // Removed as per new scope
+		// NewEmbeddingsModelResource, // Removed as per new scope
 	}
 }
 
