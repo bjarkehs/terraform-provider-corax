@@ -1,4 +1,4 @@
-package provider_test
+package provider
 
 import (
 	"fmt"
@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
-	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 func TestAccChatCapabilityResource_basic(t *testing.T) {
@@ -14,7 +13,7 @@ func TestAccChatCapabilityResource_basic(t *testing.T) {
 	if os.Getenv("CORAX_API_ENDPOINT") == "" || os.Getenv("CORAX_API_KEY") == "" {
 		t.Skip("Skipping acceptance test: CORAX_API_ENDPOINT or CORAX_API_KEY not set")
 	}
-	
+
 	resourceName := "corax_chat_capability.test"
 	capabilityName := "tf-acc-test-chat-cap-basic"
 	systemPrompt := "You are a helpful assistant."
@@ -56,7 +55,6 @@ func TestAccChatCapabilityResource_basic(t *testing.T) {
 	})
 }
 
-
 func TestAccChatCapabilityResource_withConfig(t *testing.T) {
 	if os.Getenv("CORAX_API_ENDPOINT") == "" || os.Getenv("CORAX_API_KEY") == "" {
 		t.Skip("Skipping acceptance test: CORAX_API_ENDPOINT or CORAX_API_KEY not set")
@@ -97,7 +95,6 @@ func TestAccChatCapabilityResource_withConfig(t *testing.T) {
 		},
 	})
 }
-
 
 func testAccChatCapabilityResourceBasicConfig(name, systemPrompt string) string {
 	return fmt.Sprintf(`

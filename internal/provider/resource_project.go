@@ -14,12 +14,13 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
-	"corax/internal/coraxclient" // TODO: Adjust if your module name is different
+	"corax-terraform-provider/internal/coraxclient" // TODO: Adjust if your module name is different
 )
 
 // Ensure provider defined types fully satisfy framework interfaces.
 var _ resource.Resource = &ProjectResource{}
 var _ resource.ResourceWithImportState = &ProjectResource{}
+
 // TODO: Add ResourceWithConfigure if client is needed (it is)
 
 func NewProjectResource() resource.Resource {
@@ -258,7 +259,6 @@ func (r *ProjectResource) Update(ctx context.Context, req resource.UpdateRequest
 		}
 	}
 
-
 	// Check if there's anything to update
 	// This check might be too simplistic if the API interprets absence of a field vs. explicit null differently.
 	// For now, if the payload is empty, we might skip the API call.
@@ -269,7 +269,6 @@ func (r *ProjectResource) Update(ctx context.Context, req resource.UpdateRequest
 	// 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...) // Ensure state matches plan
 	// 	return
 	// }
-
 
 	updatedProject, err := r.client.UpdateProject(ctx, projectID, projectUpdatePayload)
 	if err != nil {

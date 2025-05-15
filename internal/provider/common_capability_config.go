@@ -2,7 +2,7 @@ package provider
 
 import (
 	"context"
-	
+
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -13,7 +13,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 
-	"corax/internal/coraxclient"
+	"corax-terraform-provider/internal/coraxclient"
 )
 
 // --- Reusable Model Structs for Capability Config ---
@@ -28,9 +28,9 @@ type CapabilityConfigModel struct {
 
 // BlobConfigModel maps to components.schemas.BlobConfig
 type BlobConfigModel struct {
-	MaxFileSizeMB    types.Int64  `tfsdk:"max_file_size_mb"`   // Default 20
-	MaxBlobs         types.Int64  `tfsdk:"max_blobs"`          // Default 10
-	AllowedMimeTypes types.List   `tfsdk:"allowed_mime_types"` // Default ["image/png", "image/jpeg"]
+	MaxFileSizeMB    types.Int64 `tfsdk:"max_file_size_mb"`   // Default 20
+	MaxBlobs         types.Int64 `tfsdk:"max_blobs"`          // Default 10
+	AllowedMimeTypes types.List  `tfsdk:"allowed_mime_types"` // Default ["image/png", "image/jpeg"]
 }
 
 // DataRetentionModel for the data_retention block (polymorphic)
@@ -174,7 +174,7 @@ func capabilityConfigModelToAPI(ctx context.Context, modelConfig types.Object, d
 	if diags.HasError() {
 		return nil
 	}
-	
+
 	apiConfig := &coraxclient.CapabilityConfig{}
 	hasChanges := false // Track if any field in config is actually set to avoid sending empty config object
 
@@ -193,7 +193,9 @@ func capabilityConfigModelToAPI(ctx context.Context, modelConfig types.Object, d
 		var blobCfgModel BlobConfigModel
 		respDiags := cfgModel.BlobConfig.As(ctx, &blobCfgModel, basetypes.ObjectAsOptions{AttributeTypes: blobConfigAttributeTypes()})
 		diags.Append(respDiags...)
-		if diags.HasError() { return nil }
+		if diags.HasError() {
+			return nil
+		}
 
 		apiBlobCfg := &coraxclient.BlobConfig{}
 		blobChanges := false
@@ -209,7 +211,9 @@ func capabilityConfigModelToAPI(ctx context.Context, modelConfig types.Object, d
 		}
 		if !blobCfgModel.AllowedMimeTypes.IsNull() && !blobCfgModel.AllowedMimeTypes.IsUnknown() {
 			diags.Append(blobCfgModel.AllowedMimeTypes.ElementsAs(ctx, &apiBlobCfg.AllowedMimeTypes, false)...)
-			if diags.HasError() { return nil }
+			if diags.HasError() {
+				return nil
+			}
 			blobChanges = true
 		}
 		if blobChanges {
@@ -222,7 +226,9 @@ func capabilityConfigModelToAPI(ctx context.Context, modelConfig types.Object, d
 		var drModel DataRetentionModel
 		respDiags := cfgModel.DataRetention.As(ctx, &drModel, basetypes.ObjectAsOptions{AttributeTypes: dataRetentionAttributeTypes()})
 		diags.Append(respDiags...)
-		if diags.HasError() { return nil }
+		if diags.HasError() {
+			return nil
+		}
 
 		apiDR := &coraxclient.DataRetention{}
 		drChanges := false
@@ -230,8 +236,10 @@ func capabilityConfigModelToAPI(ctx context.Context, modelConfig types.Object, d
 			var timedModel TimedDataRetentionModel
 			respDiags := drModel.Timed.As(ctx, &timedModel, basetypes.ObjectAsOptions{AttributeTypes: timedDataRetentionAttributeTypes()})
 			diags.Append(respDiags...)
-			if diags.HasError() { return nil }
-			
+			if diags.HasError() {
+				return nil
+			}
+
 			apiDR.Type = "timed"
 			val := int(timedModel.Hours.ValueInt64())
 			apiDR.Hours = &val
@@ -240,7 +248,9 @@ func capabilityConfigModelToAPI(ctx context.Context, modelConfig types.Object, d
 			var infModel InfiniteDataRetentionModel
 			respDiags := drModel.Infinite.As(ctx, &infModel, basetypes.ObjectAsOptions{AttributeTypes: infiniteDataRetentionAttributeTypes()})
 			diags.Append(respDiags...)
-			if diags.HasError() { return nil }
+			if diags.HasError() {
+				return nil
+			}
 
 			if infModel.Enabled.ValueBool() { // Only set if enabled is true
 				apiDR.Type = "infinite"
@@ -252,8 +262,10 @@ func capabilityConfigModelToAPI(ctx context.Context, modelConfig types.Object, d
 			hasChanges = true
 		}
 	}
-	
-	if !hasChanges { return nil } // If no actual values were set in config, return nil to omit it from API payload
+
+	if !hasChanges {
+		return nil
+	} // If no actual values were set in config, return nil to omit it from API payload
 	return apiConfig
 }
 
@@ -263,7 +275,7 @@ func capabilityConfigAPItoModel(ctx context.Context, apiConfig *coraxclient.Capa
 	}
 
 	attrs := make(map[string]attr.Value)
-	
+
 	if apiConfig.Temperature != nil {
 		attrs["temperature"] = types.Float64Value(*apiConfig.Temperature)
 	} else {
@@ -274,9 +286,8 @@ func capabilityConfigAPItoModel(ctx context.Context, apiConfig *coraxclient.Capa
 		attrs["content_tracing"] = types.BoolValue(*apiConfig.ContentTracing)
 	} else {
 		// Default to true as per schema, if API omits it (meaning default)
-		attrs["content_tracing"] = types.BoolValue(true) 
+		attrs["content_tracing"] = types.BoolValue(true)
 	}
-
 
 	if apiConfig.BlobConfig != nil {
 		blobAttrs := make(map[string]attr.Value)
@@ -330,7 +341,7 @@ func capabilityConfigAPItoModel(ctx context.Context, apiConfig *coraxclient.Capa
 	} else {
 		attrs["data_retention"] = types.ObjectNull(dataRetentionAttributeTypes())
 	}
-	
+
 	objVal, objDiags := types.ObjectValue(capabilityConfigAttributeTypes(), attrs)
 	diags.Append(objDiags...)
 	return objVal

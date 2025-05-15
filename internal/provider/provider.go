@@ -16,7 +16,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
-	"corax/internal/coraxclient" // TODO: Adjust this path if your module name is different
+	"corax-terraform-provider/internal/coraxclient" // TODO: Adjust this path if your module name is different
 )
 
 // Ensure CoraxProvider satisfies various provider interfaces.
@@ -126,10 +126,10 @@ func (p *CoraxProvider) Resources(ctx context.Context) []func() resource.Resourc
 	return []func() resource.Resource{
 		NewAPIKeyResource,
 		NewProjectResource,
-		NewChatCapabilityResource,    // Added Chat Capability
-		NewCompletionCapabilityResource, // Added Completion Capability
-		NewModelDeploymentResource,      // Added Model Deployment
-		NewModelProviderResource,             // Added Model Provider
+		NewChatCapabilityResource,             // Added Chat Capability
+		NewCompletionCapabilityResource,       // Added Completion Capability
+		NewModelDeploymentResource,            // Added Model Deployment
+		NewModelProviderResource,              // Added Model Provider
 		NewCapabilityTypeDefaultModelResource, // Added Capability Type Default Model
 		// NewCollectionResource, // Removed as per new scope
 		// NewDocumentResource,   // Removed as per new scope

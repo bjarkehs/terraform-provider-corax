@@ -1,4 +1,4 @@
-package provider_test
+package provider
 
 import (
 	"fmt"
@@ -27,7 +27,6 @@ func TestAccCapabilityTypeDefaultModelResource_basic(t *testing.T) {
 	if testModelDeploymentID == testModelDeploymentID2 {
 		t.Skipf("Skipping acceptance test: %s and %s must be different for update test", testAccCapabilityTypeDefaultModelDeploymentIDEnvVar, testAccCapabilityTypeDefaultModelDeploymentIDEnvVar2)
 	}
-
 
 	resourceName := "corax_capability_type_default_model.chat_default"
 	capabilityType := "chat" // Testing with "chat" type

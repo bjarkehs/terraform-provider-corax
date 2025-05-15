@@ -6,7 +6,6 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
-	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -18,7 +17,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
-	"corax/internal/coraxclient"
+	"corax-terraform-provider/internal/coraxclient"
 )
 
 // Ensure provider defined types fully satisfy framework interfaces.
@@ -43,10 +42,10 @@ type ModelDeploymentResourceModel struct {
 	Configuration  types.Map    `tfsdk:"configuration"`   // Map of string to string
 	IsActive       types.Bool   `tfsdk:"is_active"`
 	ProviderID     types.String `tfsdk:"provider_id"`
-	CreatedAt      types.String `tfsdk:"created_at"`      // Computed
-	UpdatedAt      types.String `tfsdk:"updated_at"`      // Computed, Nullable
-	CreatedBy      types.String `tfsdk:"created_by"`      // Computed
-	UpdatedBy      types.String `tfsdk:"updated_by"`      // Computed, Nullable
+	CreatedAt      types.String `tfsdk:"created_at"` // Computed
+	UpdatedAt      types.String `tfsdk:"updated_at"` // Computed, Nullable
+	CreatedBy      types.String `tfsdk:"created_by"` // Computed
+	UpdatedBy      types.String `tfsdk:"updated_by"` // Computed, Nullable
 }
 
 func (r *ModelDeploymentResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -161,7 +160,7 @@ func modelDeploymentResourceModelToAPICreate(ctx context.Context, plan ModelDepl
 		return nil, fmt.Errorf("failed to convert configuration")
 	}
 	apiCreate.Configuration = configMap
-	
+
 	return apiCreate, nil
 }
 
@@ -210,21 +209,24 @@ func modelDeploymentResourceModelToAPIUpdate(ctx context.Context, plan ModelDepl
 	if !plan.SupportedTasks.Equal(state.SupportedTasks) {
 		respDiags := plan.SupportedTasks.ElementsAs(ctx, &apiUpdate.SupportedTasks, false)
 		diags.Append(respDiags...)
-		if diags.HasError() { return nil, false, fmt.Errorf("failed to convert supported_tasks for update") }
+		if diags.HasError() {
+			return nil, false, fmt.Errorf("failed to convert supported_tasks for update")
+		}
 		updateNeeded = true
 	}
 	if !plan.Configuration.Equal(state.Configuration) {
 		configMap := make(map[string]string)
 		respDiags := plan.Configuration.ElementsAs(ctx, &configMap, false)
 		diags.Append(respDiags...)
-		if diags.HasError() { return nil, false, fmt.Errorf("failed to convert configuration for update") }
+		if diags.HasError() {
+			return nil, false, fmt.Errorf("failed to convert configuration for update")
+		}
 		apiUpdate.Configuration = configMap
 		updateNeeded = true
 	}
 
 	return apiUpdate, updateNeeded, nil
 }
-
 
 // Helper to map API response to TF model
 func mapAPIModelDeploymentToResourceModel(ctx context.Context, apiDeployment *coraxclient.ModelDeployment, model *ModelDeploymentResourceModel, diags *diag.Diagnostics) {
@@ -250,7 +252,7 @@ func mapAPIModelDeploymentToResourceModel(ctx context.Context, apiDeployment *co
 	configMap, mapDiags := types.MapValueFrom(ctx, types.StringType, apiDeployment.Configuration)
 	diags.Append(mapDiags...)
 	model.Configuration = configMap
-	
+
 	model.CreatedAt = types.StringValue(apiDeployment.CreatedAt)
 	model.CreatedBy = types.StringValue(apiDeployment.CreatedBy)
 
@@ -266,19 +268,21 @@ func mapAPIModelDeploymentToResourceModel(ctx context.Context, apiDeployment *co
 	}
 }
 
-
 func (r *ModelDeploymentResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var plan ModelDeploymentResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
-	if resp.Diagnostics.HasError() { return }
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	apiCreatePayload, err := modelDeploymentResourceModelToAPICreate(ctx, plan, &resp.Diagnostics)
 	if err != nil {
 		// Diagnostics already appended by helper
 		return
 	}
-	if resp.Diagnostics.HasError() { return }
-
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	tflog.Debug(ctx, fmt.Sprintf("Creating Model Deployment: %s", apiCreatePayload.Name))
 	createdDeployment, err := r.client.CreateModelDeployment(ctx, *apiCreatePayload)
@@ -288,7 +292,9 @@ func (r *ModelDeploymentResource) Create(ctx context.Context, req resource.Creat
 	}
 
 	mapAPIModelDeploymentToResourceModel(ctx, createdDeployment, &plan, &resp.Diagnostics)
-	if resp.Diagnostics.HasError() { return }
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	tflog.Info(ctx, fmt.Sprintf("Model Deployment %s created successfully with ID %s", plan.Name.ValueString(), plan.ID.ValueString()))
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
@@ -297,7 +303,9 @@ func (r *ModelDeploymentResource) Create(ctx context.Context, req resource.Creat
 func (r *ModelDeploymentResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var state ModelDeploymentResourceModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
-	if resp.Diagnostics.HasError() { return }
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	deploymentID := state.ID.ValueString()
 	tflog.Debug(ctx, fmt.Sprintf("Reading Model Deployment with ID: %s", deploymentID))
@@ -314,7 +322,9 @@ func (r *ModelDeploymentResource) Read(ctx context.Context, req resource.ReadReq
 	}
 
 	mapAPIModelDeploymentToResourceModel(ctx, apiDeployment, &state, &resp.Diagnostics)
-	if resp.Diagnostics.HasError() { return }
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	tflog.Debug(ctx, fmt.Sprintf("Successfully read Model Deployment %s", deploymentID))
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -324,7 +334,9 @@ func (r *ModelDeploymentResource) Update(ctx context.Context, req resource.Updat
 	var plan, state ModelDeploymentResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
-	if resp.Diagnostics.HasError() { return }
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	deploymentID := state.ID.ValueString()
 	tflog.Debug(ctx, fmt.Sprintf("Updating Model Deployment with ID: %s", deploymentID))
@@ -334,14 +346,16 @@ func (r *ModelDeploymentResource) Update(ctx context.Context, req resource.Updat
 		// Diagnostics already appended
 		return
 	}
-	if resp.Diagnostics.HasError() { return }
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	if !updateNeeded {
 		tflog.Debug(ctx, "No attribute changes detected for Model Deployment update.")
 		resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...) // Ensure state matches plan if no API call
 		return
 	}
-	
+
 	// The API spec for ModelDeploymentUpdate is identical to Create, implying all fields are required.
 	// If the API truly requires all fields for PUT, then apiUpdatePayload must be fully populated from `plan`.
 	// The current modelDeploymentResourceModelToAPIUpdate creates a partial payload.
@@ -358,7 +372,9 @@ func (r *ModelDeploymentResource) Update(ctx context.Context, req resource.Updat
 	}
 
 	mapAPIModelDeploymentToResourceModel(ctx, updatedDeployment, &plan, &resp.Diagnostics)
-	if resp.Diagnostics.HasError() { return }
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	tflog.Info(ctx, fmt.Sprintf("Model Deployment %s updated successfully", deploymentID))
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
@@ -367,7 +383,9 @@ func (r *ModelDeploymentResource) Update(ctx context.Context, req resource.Updat
 func (r *ModelDeploymentResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	var state ModelDeploymentResourceModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
-	if resp.Diagnostics.HasError() { return }
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	deploymentID := state.ID.ValueString()
 	tflog.Debug(ctx, fmt.Sprintf("Deleting Model Deployment with ID: %s", deploymentID))

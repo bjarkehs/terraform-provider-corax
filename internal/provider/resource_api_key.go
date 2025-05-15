@@ -13,7 +13,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
-	"corax/internal/coraxclient" // TODO: Adjust if your module name is different
+	"corax-terraform-provider/internal/coraxclient" // TODO: Adjust if your module name is different
 )
 
 // Ensure provider defined types fully satisfy framework interfaces.
@@ -31,17 +31,17 @@ type APIKeyResource struct {
 
 // APIKeyResourceModel describes the resource data model.
 type APIKeyResourceModel struct {
-	ID          types.String `tfsdk:"id"`
-	Name        types.String `tfsdk:"name"`
-	ExpiresAt   types.String `tfsdk:"expires_at"`
-	Key         types.String `tfsdk:"key"`
-	Prefix      types.String `tfsdk:"prefix"`
-	CreatedBy   types.String `tfsdk:"created_by"`
-	CreatedAt   types.String `tfsdk:"created_at"`
-	UpdatedAt   types.String `tfsdk:"updated_at"`
-	IsActive    types.Bool   `tfsdk:"is_active"`
-	LastUsedAt  types.String `tfsdk:"last_used_at"`
-	UsageCount  types.Int64  `tfsdk:"usage_count"`
+	ID         types.String `tfsdk:"id"`
+	Name       types.String `tfsdk:"name"`
+	ExpiresAt  types.String `tfsdk:"expires_at"`
+	Key        types.String `tfsdk:"key"`
+	Prefix     types.String `tfsdk:"prefix"`
+	CreatedBy  types.String `tfsdk:"created_by"`
+	CreatedAt  types.String `tfsdk:"created_at"`
+	UpdatedAt  types.String `tfsdk:"updated_at"`
+	IsActive   types.Bool   `tfsdk:"is_active"`
+	LastUsedAt types.String `tfsdk:"last_used_at"`
+	UsageCount types.Int64  `tfsdk:"usage_count"`
 }
 
 func (r *APIKeyResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -171,7 +171,6 @@ func (r *APIKeyResource) Create(ctx context.Context, req resource.CreateRequest,
 	} else {
 		data.ExpiresAt = types.StringNull() // Should not happen based on schema (required)
 	}
-
 
 	tflog.Info(ctx, fmt.Sprintf("API Key created successfully with ID: %s", createdAPIKey.ID))
 

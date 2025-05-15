@@ -1,4 +1,4 @@
-package provider_test
+package provider
 
 import (
 	"fmt"
@@ -6,8 +6,6 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
-	"github.com/hashicorp/terraform-plugin-testing/terraform"
-	// "github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest" // For random strings
 )
 
 func TestAccModelProviderResource_basic(t *testing.T) {
@@ -18,7 +16,7 @@ func TestAccModelProviderResource_basic(t *testing.T) {
 	resourceName := "corax_model_provider.test"
 	// providerName := "tf-acc-test-provider-" + acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 	providerName := "tf-acc-test-provider-basic" // Using a fixed name for simplicity in this example
-	providerType := "azure_openai" // Example type, ensure this is valid in your Corax API
+	providerType := "azure_openai"               // Example type, ensure this is valid in your Corax API
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },

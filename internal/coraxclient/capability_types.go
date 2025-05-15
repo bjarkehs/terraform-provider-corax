@@ -19,8 +19,8 @@ type BlobConfig struct {
 
 // DataRetention is a wrapper for polymorphic retention types
 type DataRetention struct {
-	Type   string                `json:"type"` // "timed" or "infinite"
-	Hours  *int                  `json:"hours,omitempty"` // For TimedDataRetention
+	Type  string `json:"type"`            // "timed" or "infinite"
+	Hours *int   `json:"hours,omitempty"` // For TimedDataRetention
 }
 
 // --- Chat Capability Specific Structures ---
@@ -54,22 +54,22 @@ type ChatCapabilityUpdate struct {
 // We will use its fields to populate specific chat or completion capability models.
 type CapabilityRepresentation struct {
 	// Links map[string]HateoasLink `json:"_links,omitempty"`
-	Name        string            `json:"name"`
-	IsPublic    *bool             `json:"is_public"` // API default false
-	Type        string            `json:"type"`      // "chat" or "completion"
-	ModelID     *string           `json:"model_id"`
-	Config      *CapabilityConfig `json:"config"` // API returns the resolved config
-	ProjectID   *string           `json:"project_id"`
-	ID          string            `json:"id"`
-	CreatedBy   string            `json:"created_by"`
-	UpdatedBy   string            `json:"updated_by"` // API shows this as non-nullable, but might be null in practice
-	CreatedAt   string            `json:"created_at"`
-	UpdatedAt   string            `json:"updated_at"`
-	ArchivedAt  *string           `json:"archived_at"`
-	Owner       string            `json:"owner"`
-	Input       map[string]interface{} `json:"input"`       // For CapabilityRepresentation
-	Output      map[string]interface{} `json:"output"`      // For CapabilityRepresentation
-	Configuration map[string]interface{} `json:"configuration"`// For CapabilityRepresentation
+	Name          string                 `json:"name"`
+	IsPublic      *bool                  `json:"is_public"` // API default false
+	Type          string                 `json:"type"`      // "chat" or "completion"
+	ModelID       *string                `json:"model_id"`
+	Config        *CapabilityConfig      `json:"config"` // API returns the resolved config
+	ProjectID     *string                `json:"project_id"`
+	ID            string                 `json:"id"`
+	CreatedBy     string                 `json:"created_by"`
+	UpdatedBy     string                 `json:"updated_by"` // API shows this as non-nullable, but might be null in practice
+	CreatedAt     string                 `json:"created_at"`
+	UpdatedAt     string                 `json:"updated_at"`
+	ArchivedAt    *string                `json:"archived_at"`
+	Owner         string                 `json:"owner"`
+	Input         map[string]interface{} `json:"input"`         // For CapabilityRepresentation
+	Output        map[string]interface{} `json:"output"`        // For CapabilityRepresentation
+	Configuration map[string]interface{} `json:"configuration"` // For CapabilityRepresentation
 
 	// Chat-specific fields from ChatCapability (if type is "chat")
 	// These are not directly in CapabilityRepresentation but are part of the underlying ChatCapability
@@ -107,7 +107,7 @@ type CompletionCapabilityCreate struct {
 	SystemPrompt     string                 `json:"system_prompt"`
 	CompletionPrompt string                 `json:"completion_prompt"`
 	Variables        []string               `json:"variables,omitempty"`
-	OutputType       string                 `json:"output_type"` // "schema" or "text"
+	OutputType       string                 `json:"output_type"`          // "schema" or "text"
 	SchemaDef        map[string]interface{} `json:"schema_def,omitempty"` // Used if output_type is "schema"
 }
 
@@ -136,7 +136,7 @@ type DefaultModelDeploymentUpdate struct {
 // CapabilityTypeRepresentation maps to components.schemas.CapabilityTypeRepresentation
 type CapabilityTypeRepresentation struct {
 	// Links map[string]HateoasLink `json:"_links,omitempty"`
-	ID                       string  `json:"id"` // This is the capability_type string like "chat"
+	ID                       string  `json:"id"`   // This is the capability_type string like "chat"
 	Name                     string  `json:"name"` // Display name like "Chat"
 	DefaultModelDeploymentID *string `json:"default_model_deployment_id,omitempty"`
 	// Embedded map[string]ModelDeployment `json:"_embedded,omitempty"` // Assuming ModelDeployment is defined elsewhere

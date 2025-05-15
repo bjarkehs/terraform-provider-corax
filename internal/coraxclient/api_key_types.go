@@ -17,10 +17,10 @@ type ApiKey struct {
 	Name       string  `json:"name"`
 	ExpiresAt  *string `json:"expires_at"` // Pointer to handle null
 	CreatedBy  string  `json:"created_by"`
-	CreatedAt  string  `json:"created_at"`    // Expected format: date-time
-	UpdatedAt  *string `json:"updated_at"`    // Pointer to handle null; Expected format: date-time
+	CreatedAt  string  `json:"created_at"` // Expected format: date-time
+	UpdatedAt  *string `json:"updated_at"` // Pointer to handle null; Expected format: date-time
 	IsActive   bool    `json:"is_active,omitempty"`
-	LastUsedAt *string `json:"last_used_at"`  // Pointer to handle null; Expected format: date-time
+	LastUsedAt *string `json:"last_used_at"` // Pointer to handle null; Expected format: date-time
 	UsageCount int     `json:"usage_count,omitempty"`
 }
 

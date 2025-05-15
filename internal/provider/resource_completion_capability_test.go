@@ -1,4 +1,4 @@
-package provider_test
+package provider
 
 import (
 	"fmt"
@@ -6,14 +6,13 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
-	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 func TestAccCompletionCapabilityResource_basic(t *testing.T) {
 	if os.Getenv("CORAX_API_ENDPOINT") == "" || os.Getenv("CORAX_API_KEY") == "" {
 		t.Skip("Skipping acceptance test: CORAX_API_ENDPOINT or CORAX_API_KEY not set")
 	}
-	
+
 	resourceName := "corax_completion_capability.test_basic"
 	capabilityName := "tf-acc-test-completion-basic"
 	systemPrompt := "You are a text completion model."
@@ -63,7 +62,7 @@ func TestAccCompletionCapabilityResource_withSchemaOutput(t *testing.T) {
 	capabilityName := "tf-acc-test-completion-schema"
 	systemPrompt := "Extract structured data."
 	completionPrompt := "User: John Doe, Age: 30, City: New York."
-	
+
 	// Note: The schema_def uses jsonencode for simplicity in HCL.
 	// The provider's DynamicType handling for schema_def needs to correctly parse this.
 	// Our current schemaDefMapToAPI is basic and might need users to provide JSON strings.
@@ -81,7 +80,7 @@ func TestAccCompletionCapabilityResource_withSchemaOutput(t *testing.T) {
 					// Checking schema_def is tricky with DynamicType.
 					// We'd ideally check specific keys if the provider could parse it into a structured way.
 					// For now, just check that it's set.
-					resource.TestCheckResourceAttrSet(resourceName, "schema_def.name.type"), 
+					resource.TestCheckResourceAttrSet(resourceName, "schema_def.name.type"),
 					resource.TestCheckResourceAttr(resourceName, "schema_def.name.type", "\"string\""), // Note: these will be JSON strings
 					resource.TestCheckResourceAttr(resourceName, "schema_def.name.description", "\"The name of the user\""),
 					resource.TestCheckResourceAttr(resourceName, "schema_def.age.type", "\"integer\""),
@@ -99,7 +98,6 @@ func TestAccCompletionCapabilityResource_withSchemaOutput(t *testing.T) {
 		},
 	})
 }
-
 
 func testAccCompletionCapabilityResourceBasicConfig(name, sysPrompt, compPrompt string) string {
 	return fmt.Sprintf(`

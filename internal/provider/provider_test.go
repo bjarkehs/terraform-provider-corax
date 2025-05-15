@@ -4,6 +4,7 @@
 package provider
 
 import (
+	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
@@ -24,11 +25,14 @@ var testAccProtoV6ProviderFactories = map[string]func() (tfprotov6.ProviderServe
 // This lets the data be referenced in test assertions with state checks.
 var testAccProtoV6ProviderFactoriesWithEcho = map[string]func() (tfprotov6.ProviderServer, error){
 	"corax": providerserver.NewProtocol6WithError(New("test")()), // Changed "scaffolding" to "corax"
-	"echo":        echoprovider.NewProviderServer(),
+	"echo":  echoprovider.NewProviderServer(),
 }
 
 func testAccPreCheck(t *testing.T) {
-	// You can add code here to run prior to any test case execution, for example assertions
-	// about the appropriate environment variables being set are common to see in a pre-check
-	// function.
+	if v := os.Getenv("CORAX_API_ENDPOINT"); v == "" {
+		t.Fatal("CORAX_API_ENDPOINT must be set for acceptance tests")
+	}
+	if v := os.Getenv("CORAX_API_KEY"); v == "" {
+		t.Fatal("CORAX_API_KEY must be set for acceptance tests")
+	}
 }

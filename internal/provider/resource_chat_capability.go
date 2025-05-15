@@ -5,10 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
-	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
-	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -18,10 +15,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
-	"corax/internal/coraxclient"
+	"corax-terraform-provider/internal/coraxclient"
 )
 
 // Ensure provider defined types fully satisfy framework interfaces.
@@ -42,18 +38,18 @@ type ChatCapabilityResourceModel struct {
 	ID           types.String `tfsdk:"id"`
 	Name         types.String `tfsdk:"name"`
 	IsPublic     types.Bool   `tfsdk:"is_public"`
-	ModelID      types.String `tfsdk:"model_id"`      // Nullable
-	Config       types.Object `tfsdk:"config"`        // Nullable
-	ProjectID    types.String `tfsdk:"project_id"`    // Nullable
+	ModelID      types.String `tfsdk:"model_id"`   // Nullable
+	Config       types.Object `tfsdk:"config"`     // Nullable
+	ProjectID    types.String `tfsdk:"project_id"` // Nullable
 	SystemPrompt types.String `tfsdk:"system_prompt"`
 	// CollectionIDs types.List   `tfsdk:"collection_ids"` // Omitted for now as per decision to skip collection-related features
-	CreatedBy types.String `tfsdk:"created_by"` // Computed
-	UpdatedBy types.String `tfsdk:"updated_by"` // Computed
-	CreatedAt types.String `tfsdk:"created_at"` // Computed
-	UpdatedAt types.String `tfsdk:"updated_at"` // Computed
-	ArchivedAt types.String `tfsdk:"archived_at"`// Computed, Nullable
-	Owner      types.String `tfsdk:"owner"`      // Computed
-	Type       types.String `tfsdk:"type"`       // Computed, should always be "chat"
+	CreatedBy  types.String `tfsdk:"created_by"`  // Computed
+	UpdatedBy  types.String `tfsdk:"updated_by"`  // Computed
+	CreatedAt  types.String `tfsdk:"created_at"`  // Computed
+	UpdatedAt  types.String `tfsdk:"updated_at"`  // Computed
+	ArchivedAt types.String `tfsdk:"archived_at"` // Computed, Nullable
+	Owner      types.String `tfsdk:"owner"`       // Computed
+	Type       types.String `tfsdk:"type"`        // Computed, should always be "chat"
 }
 
 func (r *ChatCapabilityResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -100,21 +96,20 @@ func (r *ChatCapabilityResource) Schema(ctx context.Context, req resource.Schema
 			// 	MarkdownDescription: "A list of collection UUIDs to be used for retrieval augmentation (RAG) by this chat capability.",
 			// },
 			"config": schema.SingleNestedAttribute{
-				Optional: true,
+				Optional:            true,
 				MarkdownDescription: "Configuration settings for the capability's behavior.",
 				Attributes:          capabilityConfigSchemaAttributes(), // Use shared schema attributes
 			},
-			"created_by": schema.StringAttribute{Computed: true, MarkdownDescription: "User who created the capability.", PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
-			"updated_by": schema.StringAttribute{Computed: true, MarkdownDescription: "User who last updated the capability.", PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
-			"created_at": schema.StringAttribute{Computed: true, MarkdownDescription: "Creation timestamp.", PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
-			"updated_at": schema.StringAttribute{Computed: true, MarkdownDescription: "Last update timestamp.", PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
+			"created_by":  schema.StringAttribute{Computed: true, MarkdownDescription: "User who created the capability.", PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
+			"updated_by":  schema.StringAttribute{Computed: true, MarkdownDescription: "User who last updated the capability.", PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
+			"created_at":  schema.StringAttribute{Computed: true, MarkdownDescription: "Creation timestamp.", PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
+			"updated_at":  schema.StringAttribute{Computed: true, MarkdownDescription: "Last update timestamp.", PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 			"archived_at": schema.StringAttribute{Computed: true, MarkdownDescription: "Archival timestamp.", PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
-			"owner": schema.StringAttribute{Computed: true, MarkdownDescription: "Owner of the capability.", PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
-			"type": schema.StringAttribute{Computed: true, MarkdownDescription: "Type of the capability (should be 'chat').", PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
+			"owner":       schema.StringAttribute{Computed: true, MarkdownDescription: "Owner of the capability.", PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
+			"type":        schema.StringAttribute{Computed: true, MarkdownDescription: "Type of the capability (should be 'chat').", PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 		},
 	}
 }
-
 
 func (r *ChatCapabilityResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	if req.ProviderData == nil {
@@ -160,7 +155,7 @@ func mapAPICapabilityToChatModel(apiCap *coraxclient.CapabilityRepresentation, m
 		model.SystemPrompt = types.StringUnknown()
 		tflog.Warn(ctx, fmt.Sprintf("System prompt not found in API response configuration for capability %s", apiCap.ID))
 	}
-	
+
 	model.Config = capabilityConfigAPItoModel(ctx, apiCap.Config, diags)
 
 	model.CreatedBy = types.StringValue(apiCap.CreatedBy)
@@ -180,11 +175,12 @@ func mapAPICapabilityToChatModel(apiCap *coraxclient.CapabilityRepresentation, m
 	}
 }
 
-
 func (r *ChatCapabilityResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var plan ChatCapabilityResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
-	if resp.Diagnostics.HasError() { return }
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	tflog.Debug(ctx, fmt.Sprintf("Creating Chat Capability: %s", plan.Name.ValueString()))
 
@@ -206,10 +202,11 @@ func (r *ChatCapabilityResource) Create(ctx context.Context, req resource.Create
 		projectID := plan.ProjectID.ValueString()
 		apiPayload.ProjectID = &projectID
 	}
-	
-	apiPayload.Config = capabilityConfigModelToAPI(ctx, plan.Config, &resp.Diagnostics)
-	if resp.Diagnostics.HasError() { return }
 
+	apiPayload.Config = capabilityConfigModelToAPI(ctx, plan.Config, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	createdAPICap, err := r.client.CreateCapability(ctx, apiPayload)
 	if err != nil {
@@ -218,8 +215,10 @@ func (r *ChatCapabilityResource) Create(ctx context.Context, req resource.Create
 	}
 
 	mapAPICapabilityToChatModel(createdAPICap, &plan, &resp.Diagnostics, ctx)
-	if resp.Diagnostics.HasError() { return }
-	
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	tflog.Info(ctx, fmt.Sprintf("Chat Capability %s created successfully with ID %s", plan.Name.ValueString(), plan.ID.ValueString()))
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
@@ -227,7 +226,9 @@ func (r *ChatCapabilityResource) Create(ctx context.Context, req resource.Create
 func (r *ChatCapabilityResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var state ChatCapabilityResourceModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
-	if resp.Diagnostics.HasError() { return }
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	capabilityID := state.ID.ValueString()
 	tflog.Debug(ctx, fmt.Sprintf("Reading Chat Capability with ID: %s", capabilityID))
@@ -248,11 +249,13 @@ func (r *ChatCapabilityResource) Read(ctx context.Context, req resource.ReadRequ
 		resp.State.RemoveResource(ctx)
 		return
 	}
-	
-	currentConfig := state.Config // Preserve potentially more detailed config from state if API is lossy
+
+	//currentConfig := state.Config // Preserve potentially more detailed config from state if API is lossy
 
 	mapAPICapabilityToChatModel(apiCap, &state, &resp.Diagnostics, ctx)
-	if resp.Diagnostics.HasError() { return }
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	// If API returns a less detailed config, try to merge or prefer state if certain fields are not returned by GET
 	// For now, mapAPICapabilityToChatModel will overwrite. If specific config fields are write-only,
@@ -269,7 +272,9 @@ func (r *ChatCapabilityResource) Update(ctx context.Context, req resource.Update
 	var plan, state ChatCapabilityResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
-	if resp.Diagnostics.HasError() { return }
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	capabilityID := state.ID.ValueString()
 	tflog.Debug(ctx, fmt.Sprintf("Updating Chat Capability with ID: %s", capabilityID))
@@ -312,21 +317,22 @@ func (r *ChatCapabilityResource) Update(ctx context.Context, req resource.Update
 		updatePayload.SystemPrompt = &val
 		updateNeeded = true
 	}
-	
+
 	// Config update
 	if !plan.Config.Equal(state.Config) {
 		updatePayload.Config = capabilityConfigModelToAPI(ctx, plan.Config, &resp.Diagnostics)
-		if resp.Diagnostics.HasError() { return }
+		if resp.Diagnostics.HasError() {
+			return
+		}
 		updateNeeded = true // even if config becomes null
 	}
-
 
 	if !updateNeeded {
 		tflog.Debug(ctx, "No attribute changes detected for Chat Capability update.")
 		resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...) // Ensure state matches plan
 		return
 	}
-	
+
 	// Ensure type is "chat" if sending, though API might ignore it on PUT
 	// chatType := "chat"
 	// updatePayload.Type = &chatType // API schema for Update doesn't show type as updatable for specific types.
@@ -338,7 +344,9 @@ func (r *ChatCapabilityResource) Update(ctx context.Context, req resource.Update
 	}
 
 	mapAPICapabilityToChatModel(updatedAPICap, &plan, &resp.Diagnostics, ctx)
-	if resp.Diagnostics.HasError() { return }
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	tflog.Info(ctx, fmt.Sprintf("Chat Capability %s updated successfully", capabilityID))
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
@@ -347,7 +355,9 @@ func (r *ChatCapabilityResource) Update(ctx context.Context, req resource.Update
 func (r *ChatCapabilityResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	var state ChatCapabilityResourceModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
-	if resp.Diagnostics.HasError() { return }
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	capabilityID := state.ID.ValueString()
 	tflog.Debug(ctx, fmt.Sprintf("Deleting Chat Capability with ID: %s", capabilityID))

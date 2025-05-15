@@ -6,7 +6,6 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
-	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -17,7 +16,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
-	"corax/internal/coraxclient"
+	"corax-terraform-provider/internal/coraxclient"
 )
 
 // Ensure provider defined types fully satisfy framework interfaces.
@@ -124,7 +123,7 @@ func modelProviderResourceModelToAPICreate(ctx context.Context, plan ModelProvid
 		return nil, fmt.Errorf("failed to convert configuration")
 	}
 	apiCreate.Configuration = configMap
-	
+
 	return apiCreate, nil
 }
 
@@ -136,7 +135,7 @@ func modelProviderResourceModelToAPIUpdate(ctx context.Context, plan ModelProvid
 		Name:         plan.Name.ValueString(),
 		ProviderType: plan.ProviderType.ValueString(),
 	}
-	
+
 	configMap := make(map[string]string)
 	respDiags := plan.Configuration.ElementsAs(ctx, &configMap, false)
 	diags.Append(respDiags...)
@@ -148,7 +147,6 @@ func modelProviderResourceModelToAPIUpdate(ctx context.Context, plan ModelProvid
 	return apiUpdate, nil
 }
 
-
 // Helper to map API response to TF model
 func mapAPIModelProviderToResourceModel(ctx context.Context, apiProvider *coraxclient.ModelProvider, model *ModelProviderResourceModel, diags *diag.Diagnostics) {
 	model.ID = types.StringValue(apiProvider.ID)
@@ -158,7 +156,7 @@ func mapAPIModelProviderToResourceModel(ctx context.Context, apiProvider *coraxc
 	configMap, mapDiags := types.MapValueFrom(ctx, types.StringType, apiProvider.Configuration)
 	diags.Append(mapDiags...)
 	model.Configuration = configMap
-	
+
 	model.CreatedAt = types.StringValue(apiProvider.CreatedAt)
 	model.CreatedBy = types.StringValue(apiProvider.CreatedBy)
 
@@ -174,18 +172,20 @@ func mapAPIModelProviderToResourceModel(ctx context.Context, apiProvider *coraxc
 	}
 }
 
-
 func (r *ModelProviderResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var plan ModelProviderResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
-	if resp.Diagnostics.HasError() { return }
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	apiCreatePayload, err := modelProviderResourceModelToAPICreate(ctx, plan, &resp.Diagnostics)
 	if err != nil {
 		return // Diagnostics already handled
 	}
-	if resp.Diagnostics.HasError() { return }
-
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	tflog.Debug(ctx, fmt.Sprintf("Creating Model Provider: %s", apiCreatePayload.Name))
 	createdProvider, err := r.client.CreateModelProvider(ctx, *apiCreatePayload)
@@ -195,7 +195,9 @@ func (r *ModelProviderResource) Create(ctx context.Context, req resource.CreateR
 	}
 
 	mapAPIModelProviderToResourceModel(ctx, createdProvider, &plan, &resp.Diagnostics)
-	if resp.Diagnostics.HasError() { return }
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	tflog.Info(ctx, fmt.Sprintf("Model Provider %s created successfully with ID %s", plan.Name.ValueString(), plan.ID.ValueString()))
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
@@ -204,7 +206,9 @@ func (r *ModelProviderResource) Create(ctx context.Context, req resource.CreateR
 func (r *ModelProviderResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var state ModelProviderResourceModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
-	if resp.Diagnostics.HasError() { return }
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	providerID := state.ID.ValueString()
 	tflog.Debug(ctx, fmt.Sprintf("Reading Model Provider with ID: %s", providerID))
@@ -221,7 +225,9 @@ func (r *ModelProviderResource) Read(ctx context.Context, req resource.ReadReque
 	}
 
 	mapAPIModelProviderToResourceModel(ctx, apiProvider, &state, &resp.Diagnostics)
-	if resp.Diagnostics.HasError() { return }
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	tflog.Debug(ctx, fmt.Sprintf("Successfully read Model Provider %s", providerID))
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -230,7 +236,9 @@ func (r *ModelProviderResource) Read(ctx context.Context, req resource.ReadReque
 func (r *ModelProviderResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var plan ModelProviderResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
-	if resp.Diagnostics.HasError() { return }
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	providerID := plan.ID.ValueString() // ID comes from plan/state, not updatable
 	tflog.Debug(ctx, fmt.Sprintf("Updating Model Provider with ID: %s", providerID))
@@ -241,8 +249,10 @@ func (r *ModelProviderResource) Update(ctx context.Context, req resource.UpdateR
 	if err != nil {
 		return // Diagnostics already handled
 	}
-	if resp.Diagnostics.HasError() { return }
-	
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	updatedProvider, err := r.client.UpdateModelProvider(ctx, providerID, *apiUpdatePayload)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update model provider %s: %s", providerID, err))
@@ -250,7 +260,9 @@ func (r *ModelProviderResource) Update(ctx context.Context, req resource.UpdateR
 	}
 
 	mapAPIModelProviderToResourceModel(ctx, updatedProvider, &plan, &resp.Diagnostics)
-	if resp.Diagnostics.HasError() { return }
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	tflog.Info(ctx, fmt.Sprintf("Model Provider %s updated successfully", providerID))
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
@@ -259,7 +271,9 @@ func (r *ModelProviderResource) Update(ctx context.Context, req resource.UpdateR
 func (r *ModelProviderResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	var state ModelProviderResourceModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
-	if resp.Diagnostics.HasError() { return }
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	providerID := state.ID.ValueString()
 	tflog.Debug(ctx, fmt.Sprintf("Deleting Model Provider with ID: %s", providerID))

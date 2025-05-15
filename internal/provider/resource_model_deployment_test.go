@@ -1,4 +1,4 @@
-package provider_test
+package provider
 
 import (
 	"fmt"
@@ -6,8 +6,6 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
-	"github.com/hashicorp/terraform-plugin-testing/terraform"
-	// "github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest" // For random strings if needed
 )
 
 const testAccModelDeploymentProviderIDEnvVar = "CORAX_TEST_MODEL_PROVIDER_ID"

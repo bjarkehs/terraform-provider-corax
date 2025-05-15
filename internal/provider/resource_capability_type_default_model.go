@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
-	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -15,7 +14,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
-	"corax/internal/coraxclient"
+	"corax-terraform-provider/internal/coraxclient"
 )
 
 // Ensure provider defined types fully satisfy framework interfaces.
@@ -33,10 +32,10 @@ type CapabilityTypeDefaultModelResource struct {
 
 // CapabilityTypeDefaultModelResourceModel describes the resource data model.
 type CapabilityTypeDefaultModelResourceModel struct {
-	CapabilityType             types.String `tfsdk:"capability_type"`               // This will also serve as the ID
+	CapabilityType           types.String `tfsdk:"capability_type"`             // This will also serve as the ID
 	DefaultModelDeploymentID types.String `tfsdk:"default_model_deployment_id"` // UUID
 	// Read-only attributes from CapabilityTypeRepresentation
-	Name types.String `tfsdk:"name"` 
+	Name types.String `tfsdk:"name"`
 }
 
 func (r *CapabilityTypeDefaultModelResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -50,7 +49,7 @@ func (r *CapabilityTypeDefaultModelResource) Schema(ctx context.Context, req res
 			"capability_type": schema.StringAttribute{
 				Required:            true,
 				MarkdownDescription: "The type of the capability (e.g., 'chat', 'completion', 'embedding'). This also serves as the resource ID.",
-				PlanModifiers:       []planmodifier.String{stringplanmodifier.RequiresReplace()}, // Changing this means managing a different capability type's default
+				PlanModifiers:       []planmodifier.String{stringplanmodifier.RequiresReplace()},                  // Changing this means managing a different capability type's default
 				Validators:          []validator.String{stringvalidator.OneOf("chat", "completion", "embedding")}, // Based on CapabilityType enum
 			},
 			"default_model_deployment_id": schema.StringAttribute{
@@ -84,11 +83,13 @@ func (r *CapabilityTypeDefaultModelResource) Configure(ctx context.Context, req 
 func (r *CapabilityTypeDefaultModelResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var plan CapabilityTypeDefaultModelResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
-	if resp.Diagnostics.HasError() { return }
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	tflog.Debug(ctx, "Create function for corax_capability_type_default_model (actually PUT).")
 	// Create is effectively an Update (PUT) operation
-	
+
 	updatePayload := coraxclient.DefaultModelDeploymentUpdate{
 		DefaultModelDeploymentID: plan.DefaultModelDeploymentID.ValueString(),
 	}
@@ -102,7 +103,7 @@ func (r *CapabilityTypeDefaultModelResource) Create(ctx context.Context, req res
 
 	plan.Name = types.StringValue(apiResp.Name)
 	// The ID of this resource is the capability_type itself.
-	
+
 	tflog.Info(ctx, fmt.Sprintf("Default model for capability type %s set successfully.", capabilityType))
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
@@ -111,7 +112,9 @@ func (r *CapabilityTypeDefaultModelResource) Create(ctx context.Context, req res
 func (r *CapabilityTypeDefaultModelResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var state CapabilityTypeDefaultModelResourceModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
-	if resp.Diagnostics.HasError() { return }
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	capabilityType := state.CapabilityType.ValueString()
 	tflog.Debug(ctx, fmt.Sprintf("Reading default model for capability type: %s", capabilityType))
@@ -122,7 +125,7 @@ func (r *CapabilityTypeDefaultModelResource) Read(ctx context.Context, req resou
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read capability type %s: %s", capabilityType, err))
 		return
 	}
-	
+
 	state.Name = types.StringValue(apiResp.Name)
 	if apiResp.DefaultModelDeploymentID != nil {
 		state.DefaultModelDeploymentID = types.StringValue(*apiResp.DefaultModelDeploymentID)
@@ -133,7 +136,7 @@ func (r *CapabilityTypeDefaultModelResource) Read(ctx context.Context, req resou
 		// For Read, if it's null, we reflect that.
 		state.DefaultModelDeploymentID = types.StringNull()
 	}
-	
+
 	tflog.Debug(ctx, fmt.Sprintf("Successfully read default model for capability type %s", capabilityType))
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
@@ -142,7 +145,9 @@ func (r *CapabilityTypeDefaultModelResource) Read(ctx context.Context, req resou
 func (r *CapabilityTypeDefaultModelResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var plan CapabilityTypeDefaultModelResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
-	if resp.Diagnostics.HasError() { return }
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	// Since capability_type RequiresReplace, Update is only for default_model_deployment_id.
 	tflog.Debug(ctx, "Update function for corax_capability_type_default_model (actually PUT).")
@@ -157,7 +162,7 @@ func (r *CapabilityTypeDefaultModelResource) Update(ctx context.Context, req res
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update default model for capability type %s: %s", capabilityType, err))
 		return
 	}
-	
+
 	plan.Name = types.StringValue(apiResp.Name)
 
 	tflog.Info(ctx, fmt.Sprintf("Default model for capability type %s updated successfully.", capabilityType))
@@ -168,7 +173,9 @@ func (r *CapabilityTypeDefaultModelResource) Update(ctx context.Context, req res
 func (r *CapabilityTypeDefaultModelResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	var state CapabilityTypeDefaultModelResourceModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
-	if resp.Diagnostics.HasError() { return }
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	capabilityType := state.CapabilityType.ValueString()
 	tflog.Debug(ctx, fmt.Sprintf("Deleting default model for capability type (attempting to set to null): %s", capabilityType))

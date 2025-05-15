@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
-	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 const (
@@ -36,8 +35,7 @@ func TestAccAPIKeyResource(t *testing.T) {
 	// A better approach would be to use random names and ensure proper cleanup.
 	resourceName := "corax_api_key.test"
 	apiKeyName := fmt.Sprintf("%s%d", testAccAPIKeyResourcePrefix, time.Now().UnixNano())
-	apiKeyNameUpdated := fmt.Sprintf("%s-updated-%d", testAccAPIKeyResourcePrefix, time.Now().UnixNano())
-
+	//apiKeyNameUpdated := fmt.Sprintf("%s-updated-%d", testAccAPIKeyResourcePrefix, time.Now().UnixNano())
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() { testAccPreCheck(t) },
@@ -95,16 +93,6 @@ resource "corax_api_key" "test" {
   expires_at = "%s"
 }
 `, apiKeyName, expiresAt)
-}
-
-// testAccPreCheck validates that the necessary environment variables are set.
-func testAccPreCheck(t *testing.T) {
-	if v := os.Getenv("CORAX_API_ENDPOINT"); v == "" {
-		t.Fatal("CORAX_API_ENDPOINT must be set for acceptance tests")
-	}
-	if v := os.Getenv("CORAX_API_KEY"); v == "" {
-		t.Fatal("CORAX_API_KEY must be set for acceptance tests")
-	}
 }
 
 // Note: The `testAccProtoV6ProviderFactories` variable is defined in `provider_test.go`

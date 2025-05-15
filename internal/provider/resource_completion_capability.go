@@ -9,7 +9,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -20,7 +19,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
-	"corax/internal/coraxclient"
+	"corax-terraform-provider/internal/coraxclient"
 )
 
 // Ensure provider defined types fully satisfy framework interfaces.
@@ -46,16 +45,16 @@ type CompletionCapabilityResourceModel struct {
 	ProjectID        types.String `tfsdk:"project_id"`    // Nullable
 	SystemPrompt     types.String `tfsdk:"system_prompt"` // Shared with Chat, but also in Completion
 	CompletionPrompt types.String `tfsdk:"completion_prompt"`
-	Variables        types.List   `tfsdk:"variables"`      // Nullable, list of strings
-	OutputType       types.String `tfsdk:"output_type"`    // "schema" or "text"
-	SchemaDef        types.Map    `tfsdk:"schema_def"`     // Nullable, map of string to dynamic/object for property defs
-	CreatedBy        types.String `tfsdk:"created_by"`     // Computed
-	UpdatedBy        types.String `tfsdk:"updated_by"`     // Computed
-	CreatedAt        types.String `tfsdk:"created_at"`     // Computed
-	UpdatedAt        types.String `tfsdk:"updated_at"`     // Computed
-	ArchivedAt       types.String `tfsdk:"archived_at"`    // Computed, Nullable
-	Owner            types.String `tfsdk:"owner"`          // Computed
-	Type             types.String `tfsdk:"type"`           // Computed, should always be "completion"
+	Variables        types.List   `tfsdk:"variables"`   // Nullable, list of strings
+	OutputType       types.String `tfsdk:"output_type"` // "schema" or "text"
+	SchemaDef        types.Map    `tfsdk:"schema_def"`  // Nullable, map of string to dynamic/object for property defs
+	CreatedBy        types.String `tfsdk:"created_by"`  // Computed
+	UpdatedBy        types.String `tfsdk:"updated_by"`  // Computed
+	CreatedAt        types.String `tfsdk:"created_at"`  // Computed
+	UpdatedAt        types.String `tfsdk:"updated_at"`  // Computed
+	ArchivedAt       types.String `tfsdk:"archived_at"` // Computed, Nullable
+	Owner            types.String `tfsdk:"owner"`       // Computed
+	Type             types.String `tfsdk:"type"`        // Computed, should always be "completion"
 }
 
 // Note: CapabilityConfigModel, BlobConfigModel, DataRetentionModel, TimedDataRetentionModel, InfiniteDataRetentionModel
@@ -152,7 +151,7 @@ func schemaDefMapToAPI(ctx context.Context, schemaDefMap types.Map, diags *diag.
 			apiSchemaDef[key] = nil
 			continue
 		}
-		
+
 		// This is a basic attempt. For complex nested structures within DynamicValue,
 		// this might not be sufficient and a recursive conversion would be needed.
 		// Or, if DynamicValue holds a string of JSON, unmarshal that.
@@ -162,13 +161,12 @@ func schemaDefMapToAPI(ctx context.Context, schemaDefMap types.Map, diags *diag.
 		// A common pattern is for users to provide JSON strings for dynamic parts.
 		// If the user provides a map in HCL, it should be convertible.
 
-		var goVal interface{}
 		// Attempt to convert to a Go map[string]interface{} if it's an object
 		// This is a simplification. A full conversion utility for dynamic types is complex.
 		// For now, we'll assume the dynamic value can be converted to a string (e.g. if it's JSON)
 		// or directly to a Go native type.
 		// A better approach for complex schema_def would be to define a proper TF schema for it.
-		
+
 		// Simplistic: try to convert to string, assuming it might be JSON.
 		// This is NOT robust for complex, typed HCL maps.
 		strVal, ok := val.(types.String)
@@ -200,7 +198,9 @@ func schemaDefMapToAPI(ctx context.Context, schemaDefMap types.Map, diags *diag.
 			apiSchemaDef[key] = "UNSUPPORTED_DYNAMIC_VALUE_CONVERSION" // Placeholder
 		}
 	}
-	if len(apiSchemaDef) == 0 { return nil}
+	if len(apiSchemaDef) == 0 {
+		return nil
+	}
 	return apiSchemaDef
 }
 
@@ -234,7 +234,6 @@ func schemaDefAPIToMap(ctx context.Context, apiSchemaDef map[string]interface{},
 	return mapVal
 }
 
-
 func mapAPICompletionCapabilityToModel(apiCap *coraxclient.CapabilityRepresentation, model *CompletionCapabilityResourceModel, diags *diag.Diagnostics, ctx context.Context) {
 	model.ID = types.StringValue(apiCap.ID)
 	model.Name = types.StringValue(apiCap.Name)
@@ -251,7 +250,7 @@ func mapAPICompletionCapabilityToModel(apiCap *coraxclient.CapabilityRepresentat
 	} else {
 		model.ProjectID = types.StringNull()
 	}
-	
+
 	// Specific fields for completion are expected to be in apiCap.Configuration
 	// This needs to be verified with actual API responses.
 	// The OpenAPI spec for CompletionCapability shows these fields at the top level of the model,
@@ -262,15 +261,21 @@ func mapAPICompletionCapabilityToModel(apiCap *coraxclient.CapabilityRepresentat
 	if configMap != nil {
 		if sysPrompt, ok := configMap["system_prompt"].(string); ok {
 			model.SystemPrompt = types.StringValue(sysPrompt)
-		} else { model.SystemPrompt = types.StringUnknown() } // Or StringNull if API can omit it
+		} else {
+			model.SystemPrompt = types.StringUnknown()
+		} // Or StringNull if API can omit it
 
 		if compPrompt, ok := configMap["completion_prompt"].(string); ok {
 			model.CompletionPrompt = types.StringValue(compPrompt)
-		} else { model.CompletionPrompt = types.StringUnknown() }
+		} else {
+			model.CompletionPrompt = types.StringUnknown()
+		}
 
 		if outputType, ok := configMap["output_type"].(string); ok {
 			model.OutputType = types.StringValue(outputType)
-		} else { model.OutputType = types.StringUnknown() }
+		} else {
+			model.OutputType = types.StringUnknown()
+		}
 
 		if vars, ok := configMap["variables"].([]interface{}); ok {
 			strVars := make([]string, len(vars))
@@ -309,7 +314,6 @@ func mapAPICompletionCapabilityToModel(apiCap *coraxclient.CapabilityRepresentat
 		tflog.Warn(ctx, fmt.Sprintf("Main 'configuration' object missing in API response for capability %s", apiCap.ID))
 	}
 
-
 	model.Config = capabilityConfigAPItoModel(ctx, apiCap.Config, diags) // Common config
 
 	model.CreatedBy = types.StringValue(apiCap.CreatedBy)
@@ -328,7 +332,6 @@ func mapAPICompletionCapabilityToModel(apiCap *coraxclient.CapabilityRepresentat
 	}
 }
 
-
 func (r *CompletionCapabilityResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	if req.ProviderData == nil {
 		return
@@ -344,7 +347,9 @@ func (r *CompletionCapabilityResource) Configure(ctx context.Context, req resour
 func (r *CompletionCapabilityResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var plan CompletionCapabilityResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
-	if resp.Diagnostics.HasError() { return }
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	tflog.Debug(ctx, fmt.Sprintf("Creating Completion Capability: %s", plan.Name.ValueString()))
 
@@ -370,7 +375,9 @@ func (r *CompletionCapabilityResource) Create(ctx context.Context, req resource.
 	}
 	if !plan.Variables.IsNull() && !plan.Variables.IsUnknown() {
 		resp.Diagnostics.Append(plan.Variables.ElementsAs(ctx, &apiPayload.Variables, false)...)
-		if resp.Diagnostics.HasError() { return }
+		if resp.Diagnostics.HasError() {
+			return
+		}
 	}
 	if plan.OutputType.ValueString() == "schema" {
 		if plan.SchemaDef.IsNull() || plan.SchemaDef.IsUnknown() {
@@ -378,14 +385,17 @@ func (r *CompletionCapabilityResource) Create(ctx context.Context, req resource.
 			return
 		}
 		apiPayload.SchemaDef = schemaDefMapToAPI(ctx, plan.SchemaDef, &resp.Diagnostics)
-		if resp.Diagnostics.HasError() { return }
+		if resp.Diagnostics.HasError() {
+			return
+		}
 	}
-	
+
 	// Common config mapping (reuse from chat capability if moved to common, or define here)
 	// For now, assuming capabilityConfigModelToAPI is available (defined in chat_capability.go or common)
 	apiPayload.Config = capabilityConfigModelToAPI(ctx, plan.Config, &resp.Diagnostics)
-	if resp.Diagnostics.HasError() { return }
-
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	createdAPICap, err := r.client.CreateCapability(ctx, apiPayload)
 	if err != nil {
@@ -394,8 +404,10 @@ func (r *CompletionCapabilityResource) Create(ctx context.Context, req resource.
 	}
 
 	mapAPICompletionCapabilityToModel(createdAPICap, &plan, &resp.Diagnostics, ctx)
-	if resp.Diagnostics.HasError() { return }
-	
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	tflog.Info(ctx, fmt.Sprintf("Completion Capability %s created successfully with ID %s", plan.Name.ValueString(), plan.ID.ValueString()))
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
@@ -403,7 +415,9 @@ func (r *CompletionCapabilityResource) Create(ctx context.Context, req resource.
 func (r *CompletionCapabilityResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var state CompletionCapabilityResourceModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
-	if resp.Diagnostics.HasError() { return }
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	capabilityID := state.ID.ValueString()
 	tflog.Debug(ctx, fmt.Sprintf("Reading Completion Capability with ID: %s", capabilityID))
@@ -424,9 +438,11 @@ func (r *CompletionCapabilityResource) Read(ctx context.Context, req resource.Re
 		resp.State.RemoveResource(ctx)
 		return
 	}
-	
+
 	mapAPICompletionCapabilityToModel(apiCap, &state, &resp.Diagnostics, ctx)
-	if resp.Diagnostics.HasError() { return }
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	tflog.Debug(ctx, fmt.Sprintf("Successfully read Completion Capability %s", capabilityID))
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -436,7 +452,9 @@ func (r *CompletionCapabilityResource) Update(ctx context.Context, req resource.
 	var plan, state CompletionCapabilityResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
-	if resp.Diagnostics.HasError() { return }
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	capabilityID := state.ID.ValueString()
 	tflog.Debug(ctx, fmt.Sprintf("Updating Completion Capability with ID: %s", capabilityID))
@@ -448,7 +466,9 @@ func (r *CompletionCapabilityResource) Update(ctx context.Context, req resource.
 	setStringPtr := func(current, new types.String) *string {
 		if !new.Equal(current) {
 			updateNeeded = true
-			if new.IsNull() { return nil } // Explicitly setting to null if API supports it
+			if new.IsNull() {
+				return nil
+			} // Explicitly setting to null if API supports it
 			val := new.ValueString()
 			return &val
 		}
@@ -457,13 +477,14 @@ func (r *CompletionCapabilityResource) Update(ctx context.Context, req resource.
 	setBoolPtr := func(current, new types.Bool) *bool {
 		if !new.Equal(current) {
 			updateNeeded = true
-			if new.IsNull() { return nil }
+			if new.IsNull() {
+				return nil
+			}
 			val := new.ValueBool()
 			return &val
 		}
 		return nil
 	}
-
 
 	updatePayload.Name = setStringPtr(state.Name, plan.Name)
 	updatePayload.IsPublic = setBoolPtr(state.IsPublic, plan.IsPublic)
@@ -473,14 +494,15 @@ func (r *CompletionCapabilityResource) Update(ctx context.Context, req resource.
 	updatePayload.CompletionPrompt = setStringPtr(state.CompletionPrompt, plan.CompletionPrompt)
 	updatePayload.OutputType = setStringPtr(state.OutputType, plan.OutputType)
 
-
 	if !plan.Variables.Equal(state.Variables) {
 		updateNeeded = true
 		if plan.Variables.IsNull() {
 			updatePayload.Variables = nil // Or an empty slice if API expects that to clear
 		} else {
 			resp.Diagnostics.Append(plan.Variables.ElementsAs(ctx, &updatePayload.Variables, false)...)
-			if resp.Diagnostics.HasError() { return }
+			if resp.Diagnostics.HasError() {
+				return
+			}
 		}
 	}
 
@@ -490,16 +512,19 @@ func (r *CompletionCapabilityResource) Update(ctx context.Context, req resource.
 			updatePayload.SchemaDef = nil
 		} else {
 			updatePayload.SchemaDef = schemaDefMapToAPI(ctx, plan.SchemaDef, &resp.Diagnostics)
-			if resp.Diagnostics.HasError() { return }
+			if resp.Diagnostics.HasError() {
+				return
+			}
 		}
 	}
-	
+
 	if !plan.Config.Equal(state.Config) {
 		updateNeeded = true
 		updatePayload.Config = capabilityConfigModelToAPI(ctx, plan.Config, &resp.Diagnostics) // Assumes this helper is available
-		if resp.Diagnostics.HasError() { return }
+		if resp.Diagnostics.HasError() {
+			return
+		}
 	}
-
 
 	if !updateNeeded {
 		tflog.Debug(ctx, "No attribute changes detected for Completion Capability update.")
@@ -514,7 +539,9 @@ func (r *CompletionCapabilityResource) Update(ctx context.Context, req resource.
 	}
 
 	mapAPICompletionCapabilityToModel(updatedAPICap, &plan, &resp.Diagnostics, ctx)
-	if resp.Diagnostics.HasError() { return }
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	tflog.Info(ctx, fmt.Sprintf("Completion Capability %s updated successfully", capabilityID))
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
@@ -523,7 +550,9 @@ func (r *CompletionCapabilityResource) Update(ctx context.Context, req resource.
 func (r *CompletionCapabilityResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	var state CompletionCapabilityResourceModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
-	if resp.Diagnostics.HasError() { return }
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	capabilityID := state.ID.ValueString()
 	tflog.Debug(ctx, fmt.Sprintf("Deleting Completion Capability with ID: %s", capabilityID))
