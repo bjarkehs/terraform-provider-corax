@@ -276,14 +276,143 @@ func (c *Client) DeleteProject(ctx context.Context, projectID string) error {
 func (c *Client) CreateCapability(ctx context.Context, capabilityData interface{}) (*CapabilityRepresentation, error) {
 	req, err := c.newRequest(ctx, http.MethodPost, "/v1/capabilities", capabilityData)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("CreateCapability: failed to create request: %w", err)
 	}
 
-	var createdCapability CapabilityRepresentation
-	if err := c.doRequest(req, &createdCapability); err != nil {
-		return nil, err
+	httpResp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("CreateCapability: failed to execute request: %w", err)
 	}
-	return &createdCapability, nil
+	defer httpResp.Body.Close()
+
+	respBodyBytes, err := io.ReadAll(httpResp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("CreateCapability: failed to read response body: %w", err)
+	}
+
+	if httpResp.StatusCode < 200 || httpResp.StatusCode >= 300 {
+		apiErr := &APIError{
+			StatusCode: httpResp.StatusCode,
+			Body:       respBodyBytes,
+		}
+		if len(respBodyBytes) > 0 && len(respBodyBytes) < 512 {
+			apiErr.Message = string(respBodyBytes)
+		} else if httpResp.Status != "" {
+			apiErr.Message = httpResp.Status
+		} else {
+			apiErr.Message = http.StatusText(httpResp.StatusCode)
+		}
+		if httpResp.StatusCode == http.StatusNotFound {
+			return nil, ErrNotFound // Return the canonical ErrNotFound
+		}
+		return nil, apiErr
+	}
+
+	var rawResponseData map[string]interface{}
+	if err := json.Unmarshal(respBodyBytes, &rawResponseData); err != nil {
+		return nil, fmt.Errorf("CreateCapability: failed to unmarshal response body into map: %w, body: %s", err, string(respBodyBytes))
+	}
+
+	createdCapability := &CapabilityRepresentation{
+		Configuration: make(map[string]interface{}),
+		Input:         make(map[string]interface{}),
+		Output:        make(map[string]interface{}),
+	}
+
+	// Helper to safely extract string
+	getString := func(m map[string]interface{}, key string) string {
+		if val, ok := m[key].(string); ok {
+			return val
+		}
+		return ""
+	}
+	// Helper to safely extract *string
+	getStringPtr := func(m map[string]interface{}, key string) *string {
+		if val, ok := m[key].(string); ok {
+			return &val
+		}
+		if m[key] == nil { // Explicit JSON null
+			return nil
+		}
+		return nil // Key not found or not a string
+	}
+	// Helper to safely extract *bool
+	getBoolPtr := func(m map[string]interface{}, key string) *bool {
+		if val, ok := m[key].(bool); ok {
+			return &val
+		}
+		if m[key] == nil { // Explicit JSON null
+			return nil
+		}
+		return nil // Key not found or not a bool
+	}
+
+	// Populate common fields from rawResponseData
+	createdCapability.ID = getString(rawResponseData, "id")
+	createdCapability.Name = getString(rawResponseData, "name")
+	createdCapability.Type = getString(rawResponseData, "type") // This is crucial
+	createdCapability.IsPublic = getBoolPtr(rawResponseData, "is_public")
+	createdCapability.ModelID = getStringPtr(rawResponseData, "model_id")
+	createdCapability.ProjectID = getStringPtr(rawResponseData, "project_id")
+	createdCapability.CreatedBy = getString(rawResponseData, "created_by")
+	createdCapability.UpdatedBy = getString(rawResponseData, "updated_by")
+	createdCapability.CreatedAt = getString(rawResponseData, "created_at")
+	createdCapability.UpdatedAt = getString(rawResponseData, "updated_at")
+	createdCapability.ArchivedAt = getStringPtr(rawResponseData, "archived_at")
+	createdCapability.Owner = getString(rawResponseData, "owner")
+
+	// Populate Config
+	if configMapVal, ok := rawResponseData["config"].(map[string]interface{}); ok && configMapVal != nil {
+		configBytes, marshalErr := json.Marshal(configMapVal)
+		if marshalErr == nil {
+			var capConfig CapabilityConfig
+			if unmarshalErr := json.Unmarshal(configBytes, &capConfig); unmarshalErr == nil {
+				createdCapability.Config = &capConfig
+			} else {
+				// Log or handle error unmarshalling nested CapabilityConfig
+				fmt.Printf("CreateCapability: warning: failed to unmarshal nested CapabilityConfig: %v\n", unmarshalErr)
+			}
+		} else {
+			// Log or handle error marshalling configMapVal
+			fmt.Printf("CreateCapability: warning: failed to marshal configMapVal for CapabilityConfig: %v\n", marshalErr)
+		}
+	}
+
+	// Populate type-specific fields into nested maps
+	capabilityTypeFromResponse := createdCapability.Type // Use the already extracted type
+
+	if capabilityTypeFromResponse == "completion" {
+		if val, ok := rawResponseData["system_prompt"]; ok {
+			createdCapability.Configuration["system_prompt"] = val
+		}
+		if val, ok := rawResponseData["completion_prompt"]; ok {
+			createdCapability.Configuration["completion_prompt"] = val
+		}
+		if val, ok := rawResponseData["output_type"]; ok {
+			createdCapability.Output["type"] = val
+		}
+		if val, ok := rawResponseData["schema_def"]; ok { // schema_def is map[string]interface{}
+			createdCapability.Output["result"] = val
+		}
+		if val, ok := rawResponseData["variables"]; ok { // variables is []interface{} (originally []string from API)
+			createdCapability.Input["variables"] = val
+		}
+	} else if capabilityTypeFromResponse == "chat" {
+		if val, ok := rawResponseData["system_prompt"]; ok {
+			createdCapability.Configuration["system_prompt"] = val
+		}
+		// Add other chat-specific fields if they need to be mapped
+		// e.g., collection_ids if it were to be used by the provider
+		// if val, ok := rawResponseData["collection_ids"]; ok {
+		//    createdCapability.Input["collection_ids"] = val // Or wherever it's mapped
+		// }
+	} else if capabilityTypeFromResponse == "" {
+		return nil, fmt.Errorf("CreateCapability: 'type' field missing or empty in API response body: %s", string(respBodyBytes))
+	} else {
+		return nil, fmt.Errorf("CreateCapability: unknown capability type '%s' in API response", capabilityTypeFromResponse)
+	}
+
+	return createdCapability, nil
 }
 
 // GetCapability retrieves a specific capability by its ID.

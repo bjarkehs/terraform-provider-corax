@@ -225,67 +225,107 @@ func mapAPICompletionCapabilityToModel(apiCap *coraxclient.CapabilityRepresentat
 		model.ProjectID = types.StringNull()
 	}
 
-	// Specific fields for completion are expected to be in apiCap.Configuration
-	// This needs to be verified with actual API responses.
-	// The OpenAPI spec for CompletionCapability shows these fields at the top level of the model,
-	// but CapabilityRepresentation has a generic 'configuration' field.
-	// Let's assume they are found within apiCap.Configuration for now.
-
-	configMap := apiCap.Configuration
-	if configMap != nil {
-		if sysPrompt, ok := configMap["system_prompt"].(string); ok {
+	// Populate SystemPrompt and CompletionPrompt from apiCap.Configuration
+	if apiCap.Configuration != nil {
+		if sysPrompt, ok := apiCap.Configuration["system_prompt"].(string); ok {
 			model.SystemPrompt = types.StringValue(sysPrompt)
 		} else {
+			// If key is missing or not a string, treat as unknown.
+			// Per schema, system_prompt is required, so Unknown is appropriate if not found/convertible.
 			model.SystemPrompt = types.StringUnknown()
-		} // Or StringNull if API can omit it
-
-		if compPrompt, ok := configMap["completion_prompt"].(string); ok {
-			model.CompletionPrompt = types.StringValue(compPrompt)
-		} else {
-			model.CompletionPrompt = types.StringUnknown()
 		}
 
-		if outputType, ok := configMap["output_type"].(string); ok {
-			model.OutputType = types.StringValue(outputType)
+		if compPrompt, ok := apiCap.Configuration["completion_prompt"].(string); ok {
+			model.CompletionPrompt = types.StringValue(compPrompt)
 		} else {
+			// Per schema, completion_prompt is required.
+			model.CompletionPrompt = types.StringUnknown()
+		}
+	} else {
+		// apiCap.Configuration map itself is nil
+		model.SystemPrompt = types.StringUnknown()
+		model.CompletionPrompt = types.StringUnknown()
+		tflog.Debug(ctx, fmt.Sprintf("apiCap.Configuration is nil for capability %s. SystemPrompt and CompletionPrompt will be unknown.", apiCap.ID))
+	}
+
+	// Populate OutputType and SchemaDef from apiCap.Output
+	if apiCap.Output != nil {
+		if outputTypeVal, ok := apiCap.Output["type"].(string); ok {
+			model.OutputType = types.StringValue(outputTypeVal)
+		} else {
+			// Per schema, output_type is required.
 			model.OutputType = types.StringUnknown()
 		}
 
-		if vars, ok := configMap["variables"].([]interface{}); ok {
-			strVars := make([]string, len(vars))
-			valid := true
-			for i, v := range vars {
-				if strV, okStr := v.(string); okStr {
-					strVars[i] = strV
-				} else {
-					valid = false
-					break
-				}
-			}
-			if valid {
-				listVal, listDiags := types.ListValueFrom(ctx, types.StringType, strVars)
-				diags.Append(listDiags...)
-				model.Variables = listVal
-			} else {
-				model.Variables = types.ListNull(types.StringType)
-			}
+		// schema_def is sourced from apiCap.Output["result"]
+		// It's optional overall, but required if output_type is "schema".
+		// schemaDefAPIToMap handles nil input map by returning types.DynamicNull().
+		if schemaDefVal, ok := apiCap.Output["result"].(map[string]interface{}); ok {
+			model.SchemaDef = schemaDefAPIToMap(ctx, schemaDefVal, diags)
 		} else {
-			model.Variables = types.ListNull(types.StringType)
-		}
-
-		if schemaDef, ok := configMap["schema_def"].(map[string]interface{}); ok {
-			model.SchemaDef = schemaDefAPIToMap(ctx, schemaDef, diags)
-		} else {
+			// If "result" is not found, or not a map[string]interface{}, treat SchemaDef as null.
+			// This is correct if output_type is "text" (schema_def would be absent/null)
+			// or if "result" is present but malformed.
+			if _, found := apiCap.Output["result"]; found && !ok {
+				diags.AddAttributeWarning(
+					path.Root("schema_def"), // Or a more specific path
+					"Invalid Type for Schema Definition",
+					fmt.Sprintf("Expected 'result' in API output to be a map, but got %T. Treating schema_def as null.", apiCap.Output["result"]),
+				)
+			}
 			model.SchemaDef = types.DynamicNull()
 		}
 	} else {
-		// If top-level configuration is missing, all specific fields are unknown/null
-		model.SystemPrompt = types.StringUnknown()
-		model.CompletionPrompt = types.StringUnknown()
+		// apiCap.Output map itself is nil
 		model.OutputType = types.StringUnknown()
-		model.Variables = types.ListNull(types.StringType)
 		model.SchemaDef = types.DynamicNull()
-		tflog.Warn(ctx, fmt.Sprintf("Main 'configuration' object missing in API response for capability %s", apiCap.ID))
+		tflog.Debug(ctx, fmt.Sprintf("apiCap.Output is nil for capability %s. OutputType will be unknown and SchemaDef null.", apiCap.ID))
+	}
+
+	// Populate Variables from apiCap.Input
+	if apiCap.Input != nil {
+		if varsData, found := apiCap.Input["variables"]; found && varsData != nil {
+			if vars, ok := varsData.([]interface{}); ok {
+				strVars := make([]string, len(vars))
+				allStrings := true
+				for i, v := range vars {
+					if strV, isString := v.(string); isString {
+						strVars[i] = strV
+					} else {
+						allStrings = false
+						diags.AddAttributeWarning(
+							path.Root("variables"), // Or a more specific path
+							"Invalid Variable Type in API Response",
+							fmt.Sprintf("Variable at index %d is not a string (actual type: %T). Treating variables as null.", i, v),
+						)
+						break
+					}
+				}
+				if allStrings {
+					listValue, conversionDiags := types.ListValueFrom(ctx, types.StringType, strVars)
+					diags.Append(conversionDiags...)
+					if !conversionDiags.HasError() {
+						model.Variables = listValue // Handles empty list correctly (non-null, empty list)
+					} else {
+						model.Variables = types.ListNull(types.StringType) // Error in types.ListValueFrom
+					}
+				} else {
+					model.Variables = types.ListNull(types.StringType) // Non-string element found
+				}
+			} else { // apiCap.Input["variables"] is present but not []interface{}
+				diags.AddAttributeWarning(
+					path.Root("variables"),
+					"Incorrect Type for Variables in API Response",
+					fmt.Sprintf("Expected 'variables' in API input to be a list, but got %T. Treating variables as null.", varsData),
+				)
+				model.Variables = types.ListNull(types.StringType)
+			}
+		} else { // "variables" key not found in apiCap.Input or its value is JSON null
+			model.Variables = types.ListNull(types.StringType)
+		}
+	} else { // apiCap.Input map itself is nil
+		model.Variables = types.ListNull(types.StringType)
+		tflog.Debug(ctx, fmt.Sprintf("apiCap.Input is nil for capability %s. Variables will be null.", apiCap.ID))
 	}
 
 	model.Config = capabilityConfigAPItoModel(ctx, apiCap.Config, diags) // Common config
