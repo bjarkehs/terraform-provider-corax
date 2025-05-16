@@ -560,7 +560,8 @@ func (r *CompletionCapabilityResource) Read(ctx context.Context, req resource.Re
 }
 
 func (r *CompletionCapabilityResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var plan, state CompletionCapabilityResourceModel
+	var plan CompletionCapabilityResourceModel
+	var state CompletionCapabilityResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
@@ -568,80 +569,78 @@ func (r *CompletionCapabilityResource) Update(ctx context.Context, req resource.
 	}
 
 	capabilityID := state.ID.ValueString()
-	tflog.Debug(ctx, fmt.Sprintf("Updating Completion Capability with ID: %s", capabilityID))
+	tflog.Debug(ctx, fmt.Sprintf("Updating Completion Capability with ID: %s using full plan payload", capabilityID))
 
-	updatePayload := coraxclient.CompletionCapabilityUpdate{}
-	updateNeeded := false
+	// --- Construct full update payload from plan ---
+	nameValue := plan.Name.ValueString()
+	typeValue := "completion" // Type is fixed for this resource
+	systemPromptValue := plan.SystemPrompt.ValueString()
+	completionPromptValue := plan.CompletionPrompt.ValueString()
+	outputTypeValue := plan.OutputType.ValueString()
 
-	// Helper to set string pointer for update payload
-	setStringPtr := func(current, new types.String) *string {
-		if !new.Equal(current) {
-			updateNeeded = true
-			if new.IsNull() {
-				return nil
-			} // Explicitly setting to null if API supports it
-			val := new.ValueString()
-			return &val
-		}
-		return nil // No change, don't include in payload
-	}
-	setBoolPtr := func(current, new types.Bool) *bool {
-		if !new.Equal(current) {
-			updateNeeded = true
-			if new.IsNull() {
-				return nil
-			}
-			val := new.ValueBool()
-			return &val
-		}
-		return nil
+	updatePayload := coraxclient.CompletionCapabilityUpdate{
+		Name:             &nameValue,
+		Type:             &typeValue,
+		SystemPrompt:     &systemPromptValue,
+		CompletionPrompt: &completionPromptValue,
+		OutputType:       &outputTypeValue,
 	}
 
-	updatePayload.Name = setStringPtr(state.Name, plan.Name)
-	updatePayload.IsPublic = setBoolPtr(state.IsPublic, plan.IsPublic)
-	updatePayload.ModelID = setStringPtr(state.ModelID, plan.ModelID)
-	updatePayload.ProjectID = setStringPtr(state.ProjectID, plan.ProjectID)
-	updatePayload.SystemPrompt = setStringPtr(state.SystemPrompt, plan.SystemPrompt)
-	updatePayload.CompletionPrompt = setStringPtr(state.CompletionPrompt, plan.CompletionPrompt)
-	updatePayload.OutputType = setStringPtr(state.OutputType, plan.OutputType)
-
-	if !plan.Variables.Equal(state.Variables) {
-		updateNeeded = true
-		if plan.Variables.IsNull() {
-			updatePayload.Variables = nil // Or an empty slice if API expects that to clear
-		} else {
-			resp.Diagnostics.Append(plan.Variables.ElementsAs(ctx, &updatePayload.Variables, false)...)
-			if resp.Diagnostics.HasError() {
-				return
-			}
-		}
+	// IsPublic
+	if !plan.IsPublic.IsNull() && !plan.IsPublic.IsUnknown() {
+		isPublicVal := plan.IsPublic.ValueBool()
+		updatePayload.IsPublic = &isPublicVal
+	} else {
+		defaultIsPublic := false // As per schema default
+		updatePayload.IsPublic = &defaultIsPublic
 	}
 
-	if !plan.SchemaDef.Equal(state.SchemaDef) {
-		updateNeeded = true
-		if plan.SchemaDef.IsNull() {
-			updatePayload.SchemaDef = nil
-		} else {
-			updatePayload.SchemaDef = schemaDefMapToAPI(ctx, plan.SchemaDef, &resp.Diagnostics)
-			if resp.Diagnostics.HasError() {
-				return
-			}
-		}
+	// ModelID
+	if !plan.ModelID.IsNull() && !plan.ModelID.IsUnknown() {
+		modelIDVal := plan.ModelID.ValueString()
+		updatePayload.ModelID = &modelIDVal
+	} else {
+		updatePayload.ModelID = nil
 	}
 
-	if !plan.Config.Equal(state.Config) {
-		updateNeeded = true
-		updatePayload.Config = capabilityConfigModelToAPI(ctx, plan.Config, &resp.Diagnostics) // Assumes this helper is available
+	// ProjectID
+	if !plan.ProjectID.IsNull() && !plan.ProjectID.IsUnknown() {
+		projectIDVal := plan.ProjectID.ValueString()
+		updatePayload.ProjectID = &projectIDVal
+	} else {
+		updatePayload.ProjectID = nil
+	}
+
+	// Variables
+	if !plan.Variables.IsNull() && !plan.Variables.IsUnknown() {
+		var vars []string
+		resp.Diagnostics.Append(plan.Variables.ElementsAs(ctx, &vars, false)...)
 		if resp.Diagnostics.HasError() {
 			return
 		}
+		updatePayload.Variables = vars // Assign directly, omitempty handles if vars is nil/empty based on API needs
+	} else {
+		// If API expects an empty list to clear, send []string{}. If omitempty on nil is preferred, send nil.
+		// Assuming omitempty on nil is fine for now.
+		updatePayload.Variables = nil
 	}
 
-	if !updateNeeded {
-		tflog.Debug(ctx, "No attribute changes detected for Completion Capability update.")
-		resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+	// SchemaDef
+	if !plan.SchemaDef.IsNull() && !plan.SchemaDef.IsUnknown() {
+		updatePayload.SchemaDef = schemaDefMapToAPI(ctx, plan.SchemaDef, &resp.Diagnostics)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+	} else {
+		updatePayload.SchemaDef = nil
+	}
+
+	// Config
+	updatePayload.Config = capabilityConfigModelToAPI(ctx, plan.Config, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
 		return
 	}
+	// --- End of payload construction ---
 
 	updatedAPICap, err := r.client.UpdateCapability(ctx, capabilityID, updatePayload)
 	if err != nil {

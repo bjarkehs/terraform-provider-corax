@@ -269,73 +269,65 @@ func (r *ChatCapabilityResource) Read(ctx context.Context, req resource.ReadRequ
 }
 
 func (r *ChatCapabilityResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var plan, state ChatCapabilityResourceModel
+	var plan ChatCapabilityResourceModel
+	// var state ChatCapabilityResourceModel // Not strictly needed if we send full payload from plan
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	// resp.Diagnostics.Append(req.State.Get(ctx, &state)...) // State needed for ID
+	var state ChatCapabilityResourceModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	capabilityID := state.ID.ValueString()
-	tflog.Debug(ctx, fmt.Sprintf("Updating Chat Capability with ID: %s", capabilityID))
+	capabilityID := state.ID.ValueString() // Get ID from state
+	tflog.Debug(ctx, fmt.Sprintf("Updating Chat Capability with ID: %s using full plan payload", capabilityID))
 
-	updatePayload := coraxclient.ChatCapabilityUpdate{}
-	updateNeeded := false
+	// --- Construct full update payload from plan ---
+	nameValue := plan.Name.ValueString()
+	typeValue := "chat" // Type is fixed for this resource
+	systemPromptValue := plan.SystemPrompt.ValueString()
 
-	if !plan.Name.Equal(state.Name) {
-		val := plan.Name.ValueString()
-		updatePayload.Name = &val
-		updateNeeded = true
-	}
-	if !plan.IsPublic.Equal(state.IsPublic) {
-		val := plan.IsPublic.ValueBool()
-		updatePayload.IsPublic = &val
-		updateNeeded = true
-	}
-	if !plan.ModelID.Equal(state.ModelID) {
-		if plan.ModelID.IsNull() {
-			var nilStr *string
-			updatePayload.ModelID = nilStr
-		} else {
-			val := plan.ModelID.ValueString()
-			updatePayload.ModelID = &val
-		}
-		updateNeeded = true
-	}
-	if !plan.ProjectID.Equal(state.ProjectID) {
-		if plan.ProjectID.IsNull() {
-			var nilStr *string
-			updatePayload.ProjectID = nilStr
-		} else {
-			val := plan.ProjectID.ValueString()
-			updatePayload.ProjectID = &val
-		}
-		updateNeeded = true
-	}
-	if !plan.SystemPrompt.Equal(state.SystemPrompt) {
-		val := plan.SystemPrompt.ValueString()
-		updatePayload.SystemPrompt = &val
-		updateNeeded = true
+	updatePayload := coraxclient.ChatCapabilityUpdate{
+		Name:         &nameValue,
+		Type:         &typeValue,
+		SystemPrompt: &systemPromptValue,
 	}
 
-	// Config update
-	if !plan.Config.Equal(state.Config) {
-		updatePayload.Config = capabilityConfigModelToAPI(ctx, plan.Config, &resp.Diagnostics)
-		if resp.Diagnostics.HasError() {
-			return
-		}
-		updateNeeded = true // even if config becomes null
+	// IsPublic
+	if !plan.IsPublic.IsNull() && !plan.IsPublic.IsUnknown() {
+		isPublicVal := plan.IsPublic.ValueBool()
+		updatePayload.IsPublic = &isPublicVal
+	} else {
+		// If IsPublic is null or unknown in plan, send the default value (false)
+		// as API expects all fields.
+		defaultIsPublic := false // As per schema default
+		updatePayload.IsPublic = &defaultIsPublic
 	}
 
-	if !updateNeeded {
-		tflog.Debug(ctx, "No attribute changes detected for Chat Capability update.")
-		resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...) // Ensure state matches plan
+	// ModelID
+	if !plan.ModelID.IsNull() && !plan.ModelID.IsUnknown() {
+		modelIDVal := plan.ModelID.ValueString()
+		updatePayload.ModelID = &modelIDVal
+	} else {
+		updatePayload.ModelID = nil // API will treat as not set or use its default
+	}
+
+	// ProjectID
+	if !plan.ProjectID.IsNull() && !plan.ProjectID.IsUnknown() {
+		projectIDVal := plan.ProjectID.ValueString()
+		updatePayload.ProjectID = &projectIDVal
+	} else {
+		updatePayload.ProjectID = nil // API will treat as not set or use its default
+	}
+
+	// Config
+	// The capabilityConfigModelToAPI helper should handle plan.Config being null/unknown
+	// and return nil for apiConfig, which `omitempty` will then exclude.
+	updatePayload.Config = capabilityConfigModelToAPI(ctx, plan.Config, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
 		return
 	}
-
-	// Ensure type is "chat" if sending, though API might ignore it on PUT
-	// chatType := "chat"
-	// updatePayload.Type = &chatType // API schema for Update doesn't show type as updatable for specific types.
+	// --- End of payload construction ---
 
 	updatedAPICap, err := r.client.UpdateCapability(ctx, capabilityID, updatePayload)
 	if err != nil {
@@ -343,6 +335,7 @@ func (r *ChatCapabilityResource) Update(ctx context.Context, req resource.Update
 		return
 	}
 
+	// Map response back to plan model to refresh computed values
 	mapAPICapabilityToChatModel(updatedAPICap, &plan, &resp.Diagnostics, ctx)
 	if resp.Diagnostics.HasError() {
 		return
