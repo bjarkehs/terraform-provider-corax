@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sort"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -312,11 +313,30 @@ func mapAPICompletionCapabilityToModel(apiCap *coraxclient.CapabilityRepresentat
 				} else {
 					model.Variables = types.ListNull(types.StringType) // Non-string element found
 				}
-			} else { // apiCap.Input["variables"] is present but not []interface{}
+			} else if varsMap, ok := varsData.(map[string]interface{}); ok { // Handle map from GET
+				strVarKeys := make([]string, 0, len(varsMap))
+				for k := range varsMap {
+					strVarKeys = append(strVarKeys, k)
+				}
+				sort.Strings(strVarKeys) // Ensure consistent order
+
+				listValue, conversionDiags := types.ListValueFrom(ctx, types.StringType, strVarKeys)
+				diags.Append(conversionDiags...)
+				if !conversionDiags.HasError() {
+					model.Variables = listValue
+				} else {
+					model.Variables = types.ListNull(types.StringType)
+					diags.AddAttributeError(
+						path.Root("variables"),
+						"Variable Conversion Error (Map to List)",
+						fmt.Sprintf("Failed to convert variable keys from API map to list: %v", conversionDiags),
+					)
+				}
+			} else { // apiCap.Input["variables"] is present but not []interface{} and not map[string]interface{}
 				diags.AddAttributeWarning(
 					path.Root("variables"),
 					"Incorrect Type for Variables in API Response",
-					fmt.Sprintf("Expected 'variables' in API input to be a list, but got %T. Treating variables as null.", varsData),
+					fmt.Sprintf("Expected 'variables' in API input to be a list or map of strings, but got %T. Treating variables as null.", varsData),
 				)
 				model.Variables = types.ListNull(types.StringType)
 			}
