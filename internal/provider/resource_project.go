@@ -39,10 +39,6 @@ type ProjectResourceModel struct {
 	Name            types.String `tfsdk:"name"`
 	Description     types.String `tfsdk:"description"`
 	IsPublic        types.Bool   `tfsdk:"is_public"`
-	CreatedBy       types.String `tfsdk:"created_by"`
-	UpdatedBy       types.String `tfsdk:"updated_by"` // Nullable
-	CreatedAt       types.String `tfsdk:"created_at"`
-	UpdatedAt       types.String `tfsdk:"updated_at"` // Nullable
 	Owner           types.String `tfsdk:"owner"`
 	CollectionCount types.Int64  `tfsdk:"collection_count"`
 	CapabilityCount types.Int64  `tfsdk:"capability_count"`
@@ -59,18 +55,6 @@ func mapProjectToModel(project *coraxclient.Project, model *ProjectResourceModel
 		model.Description = types.StringNull()
 	}
 	model.IsPublic = types.BoolValue(project.IsPublic)
-	model.CreatedBy = types.StringValue(project.CreatedBy)
-	if project.UpdatedBy != nil {
-		model.UpdatedBy = types.StringValue(*project.UpdatedBy)
-	} else {
-		model.UpdatedBy = types.StringNull()
-	}
-	model.CreatedAt = types.StringValue(project.CreatedAt)
-	if project.UpdatedAt != nil {
-		model.UpdatedAt = types.StringValue(*project.UpdatedAt)
-	} else {
-		model.UpdatedAt = types.StringNull()
-	}
 	model.Owner = types.StringValue(project.Owner)
 	model.CollectionCount = types.Int64Value(int64(project.CollectionCount))
 	model.CapabilityCount = types.Int64Value(int64(project.CapabilityCount))
@@ -107,22 +91,6 @@ func (r *ProjectResource) Schema(ctx context.Context, req resource.SchemaRequest
 					// Use the API's default if the user doesn't specify a value.
 					boolplanmodifier.UseStateForUnknown(),
 				},
-			},
-			"created_by": schema.StringAttribute{
-				Computed:            true,
-				MarkdownDescription: "The user who created the project.",
-			},
-			"updated_by": schema.StringAttribute{
-				Computed:            true,
-				MarkdownDescription: "The user who last updated the project.",
-			},
-			"created_at": schema.StringAttribute{
-				Computed:            true,
-				MarkdownDescription: "The creation date and time of the project (RFC3339 format).",
-			},
-			"updated_at": schema.StringAttribute{
-				Computed:            true,
-				MarkdownDescription: "The last update date and time of the project (RFC3339 format).",
 			},
 			"owner": schema.StringAttribute{
 				Computed:            true,

@@ -50,11 +50,6 @@ type CompletionCapabilityResourceModel struct {
 	Variables        types.List    `tfsdk:"variables"`   // Nullable, list of strings
 	OutputType       types.String  `tfsdk:"output_type"` // "schema" or "text"
 	SchemaDef        types.Dynamic `tfsdk:"schema_def"`  // Nullable, for structured output definition
-	CreatedBy        types.String  `tfsdk:"created_by"`  // Computed
-	UpdatedBy        types.String  `tfsdk:"updated_by"`  // Computed
-	CreatedAt        types.String  `tfsdk:"created_at"`  // Computed
-	UpdatedAt        types.String  `tfsdk:"updated_at"`  // Computed
-	ArchivedAt       types.String  `tfsdk:"archived_at"` // Computed, Nullable
 	Owner            types.String  `tfsdk:"owner"`       // Computed
 	Type             types.String  `tfsdk:"type"`        // Computed, should always be "completion"
 }
@@ -125,11 +120,6 @@ func (r *CompletionCapabilityResource) Schema(ctx context.Context, req resource.
 				MarkdownDescription: "Configuration settings for the capability's behavior.",
 				Attributes:          capabilityConfigSchemaAttributes(), // Defined in chat_capability_resource.go (or move to a common place)
 			},
-			"created_by":  schema.StringAttribute{Computed: true, MarkdownDescription: "User who created the capability.", PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
-			"updated_by":  schema.StringAttribute{Computed: true, MarkdownDescription: "User who last updated the capability.", PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
-			"created_at":  schema.StringAttribute{Computed: true, MarkdownDescription: "Creation timestamp.", PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
-			"updated_at":  schema.StringAttribute{Computed: true, MarkdownDescription: "Last update timestamp.", PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
-			"archived_at": schema.StringAttribute{Computed: true, MarkdownDescription: "Archival timestamp.", PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 			"owner":       schema.StringAttribute{Computed: true, MarkdownDescription: "Owner of the capability.", PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 			"type":        schema.StringAttribute{Computed: true, MarkdownDescription: "Type of the capability (should be 'completion').", PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 		},
@@ -427,20 +417,7 @@ func mapAPICompletionCapabilityToModel(apiCap *coraxclient.CapabilityRepresentat
 
 	model.Config = capabilityConfigAPItoModel(ctx, apiCap.Config, diags) // Common config
 
-	model.CreatedBy = types.StringValue(apiCap.CreatedBy)
 	model.Owner = types.StringValue(apiCap.Owner)
-	model.CreatedAt = types.StringValue(apiCap.CreatedAt)
-	model.UpdatedAt = types.StringValue(apiCap.UpdatedAt)
-	if apiCap.UpdatedBy != "" {
-		model.UpdatedBy = types.StringValue(apiCap.UpdatedBy)
-	} else {
-		model.UpdatedBy = types.StringNull()
-	}
-	if apiCap.ArchivedAt != nil {
-		model.ArchivedAt = types.StringValue(*apiCap.ArchivedAt)
-	} else {
-		model.ArchivedAt = types.StringNull()
-	}
 }
 
 func (r *CompletionCapabilityResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {

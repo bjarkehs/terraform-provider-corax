@@ -40,10 +40,6 @@ type ModelProviderResourceModel struct {
 	Name          types.String `tfsdk:"name"`
 	ProviderType  types.String `tfsdk:"provider_type"`
 	Configuration types.Map    `tfsdk:"configuration"` // Map of string to string, some values might be sensitive
-	CreatedAt     types.String `tfsdk:"created_at"`    // Computed
-	UpdatedAt     types.String `tfsdk:"updated_at"`    // Computed, Nullable
-	CreatedBy     types.String `tfsdk:"created_by"`    // Computed
-	UpdatedBy     types.String `tfsdk:"updated_by"`    // Computed, Nullable
 }
 
 func (r *ModelProviderResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -74,26 +70,6 @@ func (r *ModelProviderResource) Schema(ctx context.Context, req resource.SchemaR
 				Required:            true,
 				MarkdownDescription: "Configuration key-value pairs for the model provider. Specific keys depend on the `provider_type`. For example, 'api_key', 'api_endpoint'. Some values may be sensitive.",
 				Sensitive:           true, // Mark the whole map as sensitive as it often contains API keys.
-			},
-			"created_at": schema.StringAttribute{
-				Computed:            true,
-				MarkdownDescription: "Creation timestamp of the model provider.",
-				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
-			},
-			"updated_at": schema.StringAttribute{
-				Computed:            true,
-				MarkdownDescription: "Last update timestamp of the model provider.",
-				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
-			},
-			"created_by": schema.StringAttribute{
-				Computed:            true,
-				MarkdownDescription: "User who created the model provider.",
-				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
-			},
-			"updated_by": schema.StringAttribute{
-				Computed:            true,
-				MarkdownDescription: "User who last updated the model provider.",
-				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
 		},
 	}
@@ -159,20 +135,6 @@ func mapAPIModelProviderToResourceModel(ctx context.Context, apiProvider *coraxc
 	tflog.Debug(ctx, fmt.Sprintf("Mapping configuration: %v", configMap))
 	diags.Append(mapDiags...)
 	model.Configuration = configMap
-
-	model.CreatedAt = types.StringValue(apiProvider.CreatedAt)
-	model.CreatedBy = types.StringValue(apiProvider.CreatedBy)
-
-	if apiProvider.UpdatedAt != nil {
-		model.UpdatedAt = types.StringValue(*apiProvider.UpdatedAt)
-	} else {
-		model.UpdatedAt = types.StringNull()
-	}
-	if apiProvider.UpdatedBy != nil {
-		model.UpdatedBy = types.StringValue(*apiProvider.UpdatedBy)
-	} else {
-		model.UpdatedBy = types.StringNull()
-	}
 }
 
 func (r *ModelProviderResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -341,10 +303,8 @@ func (r *ModelProviderResource) Update(ctx context.Context, req resource.UpdateR
 	// Crucially, set Configuration to what was planned.
 	finalState := plan
 	finalState.Configuration = plannedConfiguration  // Use the planned configuration
-	finalState.UpdatedAt = stateFromServer.UpdatedAt // Update computed value
-	finalState.UpdatedBy = stateFromServer.UpdatedBy // Update computed value
-	// ID, CreatedAt, CreatedBy are not expected to change on update / are UseStateForUnknown or immutable.
 	// Name and ProviderType are taken from the 'plan' variable, which reflects the user's intent.
+	// ID is not expected to change on update / is UseStateForUnknown or immutable.
 
 	tflog.Info(ctx, fmt.Sprintf("Model Provider %s updated successfully", providerID))
 	resp.Diagnostics.Append(resp.State.Set(ctx, &finalState)...)

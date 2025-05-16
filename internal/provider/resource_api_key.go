@@ -36,9 +36,6 @@ type APIKeyResourceModel struct {
 	ExpiresAt  types.String `tfsdk:"expires_at"`
 	Key        types.String `tfsdk:"key"`
 	Prefix     types.String `tfsdk:"prefix"`
-	CreatedBy  types.String `tfsdk:"created_by"`
-	CreatedAt  types.String `tfsdk:"created_at"`
-	UpdatedAt  types.String `tfsdk:"updated_at"`
 	IsActive   types.Bool   `tfsdk:"is_active"`
 	LastUsedAt types.String `tfsdk:"last_used_at"`
 	UsageCount types.Int64  `tfsdk:"usage_count"`
@@ -79,18 +76,6 @@ func (r *APIKeyResource) Schema(ctx context.Context, req resource.SchemaRequest,
 			"prefix": schema.StringAttribute{
 				Computed:            true,
 				MarkdownDescription: "The prefix of the API key.",
-			},
-			"created_by": schema.StringAttribute{
-				Computed:            true,
-				MarkdownDescription: "The user who created the API key.",
-			},
-			"created_at": schema.StringAttribute{
-				Computed:            true,
-				MarkdownDescription: "The creation date and time of the API key.",
-			},
-			"updated_at": schema.StringAttribute{
-				Computed:            true,
-				MarkdownDescription: "The last update date and time of the API key.",
 			},
 			"is_active": schema.BoolAttribute{
 				Computed:            true,
@@ -151,13 +136,6 @@ func (r *APIKeyResource) Create(ctx context.Context, req resource.CreateRequest,
 	data.ID = types.StringValue(createdAPIKey.ID)
 	data.Key = types.StringValue(createdAPIKey.Key) // This is sensitive and usually only returned on create
 	data.Prefix = types.StringValue(createdAPIKey.Prefix)
-	data.CreatedBy = types.StringValue(createdAPIKey.CreatedBy)
-	data.CreatedAt = types.StringValue(createdAPIKey.CreatedAt)
-	if createdAPIKey.UpdatedAt != nil && *createdAPIKey.UpdatedAt != "" {
-		data.UpdatedAt = types.StringValue(*createdAPIKey.UpdatedAt)
-	} else {
-		data.UpdatedAt = types.StringNull()
-	}
 	data.IsActive = types.BoolValue(createdAPIKey.IsActive)
 	if createdAPIKey.LastUsedAt != nil && *createdAPIKey.LastUsedAt != "" {
 		data.LastUsedAt = types.StringValue(*createdAPIKey.LastUsedAt)
@@ -207,16 +185,9 @@ func (r *APIKeyResource) Read(ctx context.Context, req resource.ReadRequest, res
 		data.ExpiresAt = types.StringValue(*apiKey.ExpiresAt)
 	} else {
 		data.ExpiresAt = types.StringNull() // Should not happen
-	}
-	data.Prefix = types.StringValue(apiKey.Prefix)
-	data.CreatedBy = types.StringValue(apiKey.CreatedBy)
-	data.CreatedAt = types.StringValue(apiKey.CreatedAt)
-	if apiKey.UpdatedAt != nil && *apiKey.UpdatedAt != "" {
-		data.UpdatedAt = types.StringValue(*apiKey.UpdatedAt)
-	} else {
-		data.UpdatedAt = types.StringNull()
-	}
-	data.IsActive = types.BoolValue(apiKey.IsActive)
+		}
+		data.Prefix = types.StringValue(apiKey.Prefix)
+		data.IsActive = types.BoolValue(apiKey.IsActive)
 	if apiKey.LastUsedAt != nil && *apiKey.LastUsedAt != "" {
 		data.LastUsedAt = types.StringValue(*apiKey.LastUsedAt)
 	} else {

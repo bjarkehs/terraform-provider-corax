@@ -42,10 +42,6 @@ type ModelDeploymentResourceModel struct {
 	Configuration  types.Map    `tfsdk:"configuration"`   // Map of string to string
 	IsActive       types.Bool   `tfsdk:"is_active"`
 	ProviderID     types.String `tfsdk:"provider_id"`
-	CreatedAt      types.String `tfsdk:"created_at"` // Computed
-	UpdatedAt      types.String `tfsdk:"updated_at"` // Computed, Nullable
-	CreatedBy      types.String `tfsdk:"created_by"` // Computed
-	UpdatedBy      types.String `tfsdk:"updated_by"` // Computed, Nullable
 }
 
 func (r *ModelDeploymentResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -93,26 +89,6 @@ func (r *ModelDeploymentResource) Schema(ctx context.Context, req resource.Schem
 				Required:            true,
 				MarkdownDescription: "The UUID of the Model Provider this deployment belongs to.",
 				// TODO: Add validator for UUID format
-			},
-			"created_at": schema.StringAttribute{
-				Computed:            true,
-				MarkdownDescription: "Creation timestamp of the model deployment.",
-				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
-			},
-			"updated_at": schema.StringAttribute{
-				Computed:            true,
-				MarkdownDescription: "Last update timestamp of the model deployment.",
-				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
-			},
-			"created_by": schema.StringAttribute{
-				Computed:            true,
-				MarkdownDescription: "User who created the model deployment.",
-				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
-			},
-			"updated_by": schema.StringAttribute{
-				Computed:            true,
-				MarkdownDescription: "User who last updated the model deployment.",
-				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
 		},
 	}
@@ -252,20 +228,6 @@ func mapAPIModelDeploymentToResourceModel(ctx context.Context, apiDeployment *co
 	configMap, mapDiags := types.MapValueFrom(ctx, types.StringType, apiDeployment.Configuration)
 	diags.Append(mapDiags...)
 	model.Configuration = configMap
-
-	model.CreatedAt = types.StringValue(apiDeployment.CreatedAt)
-	model.CreatedBy = types.StringValue(apiDeployment.CreatedBy)
-
-	if apiDeployment.UpdatedAt != nil {
-		model.UpdatedAt = types.StringValue(*apiDeployment.UpdatedAt)
-	} else {
-		model.UpdatedAt = types.StringNull()
-	}
-	if apiDeployment.UpdatedBy != nil {
-		model.UpdatedBy = types.StringValue(*apiDeployment.UpdatedBy)
-	} else {
-		model.UpdatedBy = types.StringNull()
-	}
 }
 
 func (r *ModelDeploymentResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
