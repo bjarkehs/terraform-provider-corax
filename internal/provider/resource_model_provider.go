@@ -19,6 +19,8 @@ import (
 	"terraform-provider-corax/internal/coraxclient"
 )
 
+const apiKeyConfigurationKey = "api_key"
+
 // Ensure provider defined types fully satisfy framework interfaces.
 var _ resource.Resource = &ModelProviderResource{}
 var _ resource.ResourceWithImportState = &ModelProviderResource{}
@@ -154,6 +156,7 @@ func mapAPIModelProviderToResourceModel(ctx context.Context, apiProvider *coraxc
 	model.ProviderType = types.StringValue(apiProvider.ProviderType)
 
 	configMap, mapDiags := types.MapValueFrom(ctx, types.StringType, apiProvider.Configuration)
+	tflog.Debug(ctx, fmt.Sprintf("Mapping configuration: %v", configMap))
 	diags.Append(mapDiags...)
 	model.Configuration = configMap
 
@@ -179,6 +182,9 @@ func (r *ModelProviderResource) Create(ctx context.Context, req resource.CreateR
 		return
 	}
 
+	// Store the planned configuration to preserve sensitive values like the full API key
+	plannedConfiguration := plan.Configuration
+
 	apiCreatePayload, err := modelProviderResourceModelToAPICreate(ctx, plan, &resp.Diagnostics)
 	if err != nil {
 		return // Diagnostics already handled
@@ -199,6 +205,34 @@ func (r *ModelProviderResource) Create(ctx context.Context, req resource.CreateR
 		return
 	}
 
+	// If the planned configuration for "api_key" was set, ensure it's preserved
+	// over any potentially truncated value returned by the API.
+	if !plannedConfiguration.IsNull() && !plannedConfiguration.IsUnknown() {
+		plannedConfigMap := make(map[string]string)
+		diags := plannedConfiguration.ElementsAs(ctx, &plannedConfigMap, false)
+		resp.Diagnostics.Append(diags...)
+
+		if !resp.Diagnostics.HasError() {
+			if fullAPIKey, ok := plannedConfigMap[apiKeyConfigurationKey]; ok && fullAPIKey != "" {
+				currentConfigMap := make(map[string]string)
+				// plan.Configuration might be null/unknown if API returned nothing for config
+				if !plan.Configuration.IsNull() && !plan.Configuration.IsUnknown() {
+					diags = plan.Configuration.ElementsAs(ctx, &currentConfigMap, false)
+					resp.Diagnostics.Append(diags...)
+				}
+
+				if !resp.Diagnostics.HasError() {
+					currentConfigMap[apiKeyConfigurationKey] = fullAPIKey // Overwrite with full key
+					updatedConfigTFMap, mapDiags := types.MapValueFrom(ctx, types.StringType, currentConfigMap)
+					resp.Diagnostics.Append(mapDiags...)
+					if !resp.Diagnostics.HasError() {
+						plan.Configuration = updatedConfigTFMap
+					}
+				}
+			}
+		}
+	}
+
 	tflog.Info(ctx, fmt.Sprintf("Model Provider %s created successfully with ID %s", plan.Name.ValueString(), plan.ID.ValueString()))
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
@@ -209,6 +243,9 @@ func (r *ModelProviderResource) Read(ctx context.Context, req resource.ReadReque
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	// Store the prior state's configuration to preserve sensitive values like the full API key
+	priorStateConfiguration := state.Configuration
 
 	providerID := state.ID.ValueString()
 	tflog.Debug(ctx, fmt.Sprintf("Reading Model Provider with ID: %s", providerID))
@@ -229,25 +266,57 @@ func (r *ModelProviderResource) Read(ctx context.Context, req resource.ReadReque
 		return
 	}
 
+	// If the prior state's configuration for "api_key" was set, ensure it's preserved
+	// over any potentially truncated value returned by the API.
+	if !priorStateConfiguration.IsNull() && !priorStateConfiguration.IsUnknown() {
+		priorStateConfigMap := make(map[string]string)
+		diags := priorStateConfiguration.ElementsAs(ctx, &priorStateConfigMap, false)
+		resp.Diagnostics.Append(diags...)
+
+		if !resp.Diagnostics.HasError() {
+			if fullAPIKey, ok := priorStateConfigMap[apiKeyConfigurationKey]; ok && fullAPIKey != "" {
+				currentConfigMap := make(map[string]string)
+				// state.Configuration might be null/unknown if API returned nothing for config
+				if !state.Configuration.IsNull() && !state.Configuration.IsUnknown() {
+					diags = state.Configuration.ElementsAs(ctx, &currentConfigMap, false)
+					resp.Diagnostics.Append(diags...)
+				}
+
+				if !resp.Diagnostics.HasError() {
+					currentConfigMap[apiKeyConfigurationKey] = fullAPIKey // Overwrite with full key
+					updatedConfigTFMap, mapDiags := types.MapValueFrom(ctx, types.StringType, currentConfigMap)
+					resp.Diagnostics.Append(mapDiags...)
+					if !resp.Diagnostics.HasError() {
+						state.Configuration = updatedConfigTFMap
+					}
+				}
+			}
+		}
+	}
+
 	tflog.Debug(ctx, fmt.Sprintf("Successfully read Model Provider %s", providerID))
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
 func (r *ModelProviderResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var plan ModelProviderResourceModel
+	var plan ModelProviderResourceModel // plan contains the configuration from the TF plan
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	providerID := plan.ID.ValueString() // ID comes from plan/state, not updatable
+	// Preserve the configuration from the plan, as this is what we intend to set for sensitive data.
+	// If the API modifies this (e.g. adds/removes keys, normalizes values),
+	// using the planned configuration for the state can prevent "unexpected new value" errors
+	// if those API modifications are not meant to be authoritative for the TF state.
+	plannedConfiguration := plan.Configuration
+
+	providerID := plan.ID.ValueString()
 	tflog.Debug(ctx, fmt.Sprintf("Updating Model Provider with ID: %s", providerID))
 
-	// API spec for ModelProviderUpdate implies all fields are required for PUT.
-	// Construct the full payload from the plan.
 	apiUpdatePayload, err := modelProviderResourceModelToAPIUpdate(ctx, plan, &resp.Diagnostics)
 	if err != nil {
-		return // Diagnostics already handled
+		return
 	}
 	if resp.Diagnostics.HasError() {
 		return
@@ -259,13 +328,26 @@ func (r *ModelProviderResource) Update(ctx context.Context, req resource.UpdateR
 		return
 	}
 
-	mapAPIModelProviderToResourceModel(ctx, updatedProvider, &plan, &resp.Diagnostics)
+	// Map the API response to a temporary model to get computed values
+	var stateFromServer ModelProviderResourceModel
+	mapAPIModelProviderToResourceModel(ctx, updatedProvider, &stateFromServer, &resp.Diagnostics)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
+	// Construct the final state:
+	// Start with the original plan (name, provider_type, etc. as planned).
+	// Update computed fields from the server's response.
+	// Crucially, set Configuration to what was planned.
+	finalState := plan
+	finalState.Configuration = plannedConfiguration  // Use the planned configuration
+	finalState.UpdatedAt = stateFromServer.UpdatedAt // Update computed value
+	finalState.UpdatedBy = stateFromServer.UpdatedBy // Update computed value
+	// ID, CreatedAt, CreatedBy are not expected to change on update / are UseStateForUnknown or immutable.
+	// Name and ProviderType are taken from the 'plan' variable, which reflects the user's intent.
+
 	tflog.Info(ctx, fmt.Sprintf("Model Provider %s updated successfully", providerID))
-	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, &finalState)...)
 }
 
 func (r *ModelProviderResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
