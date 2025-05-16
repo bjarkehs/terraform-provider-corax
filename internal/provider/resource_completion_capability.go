@@ -6,10 +6,10 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	// "bytes" // For comparing JSON bytes if needed, or for compacting - not strictly needed for this impl
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
 	"terraform-provider-corax/internal/coraxclient"
@@ -114,6 +115,9 @@ func (r *CompletionCapabilityResource) Schema(ctx context.Context, req resource.
 			"schema_def": schema.DynamicAttribute{
 				Optional:            true,
 				MarkdownDescription: "Defines the structure of the output when `output_type` is 'schema'. This can be an HCL map or a JSON string. Required if `output_type` is 'schema'.",
+				PlanModifiers: []planmodifier.Dynamic{
+					normalizeSchemaDef(),
+				},
 				// TODO: Add validation: required if output_type is "schema". This can be done with a CustomType or PlanModifier, or in Create/Update.
 			},
 			"config": schema.SingleNestedAttribute{ // Reusing the same config structure as chat
@@ -130,6 +134,79 @@ func (r *CompletionCapabilityResource) Schema(ctx context.Context, req resource.
 			"type":        schema.StringAttribute{Computed: true, MarkdownDescription: "Type of the capability (should be 'completion').", PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 		},
 	}
+}
+
+// normalizeSchemaDefDynamicModifier is a plan modifier that normalizes a JSON string
+// stored in a types.DynamicValue by unmarshalling and re-marshalling it,
+// which sorts object keys alphabetically.
+type normalizeSchemaDefDynamicModifier struct{}
+
+// Description returns a human-readable description of the plan modifier.
+func (m normalizeSchemaDefDynamicModifier) Description(ctx context.Context) string {
+	return "Normalizes the JSON string representation of schema_def by sorting object keys, ensuring a canonical form."
+}
+
+// MarkdownDescription returns a markdown description of the plan modifier.
+func (m normalizeSchemaDefDynamicModifier) MarkdownDescription(ctx context.Context) string {
+	return "Normalizes the JSON string representation of `schema_def` by parsing it and re-serializing it. This process ensures that object keys within the JSON string are alphabetically sorted, resulting in a canonical string form. This helps prevent inconsistencies if the input JSON string has a different key order than the one produced by the provider when reading from the API."
+}
+
+// PlanModifyDynamic implements the plan modification logic.
+func (m normalizeSchemaDefDynamicModifier) PlanModifyDynamic(ctx context.Context, req planmodifier.DynamicRequest, resp *planmodifier.DynamicResponse) {
+	// If the planned value is null or unknown, don't modify it
+	if req.PlanValue.IsNull() || req.PlanValue.IsUnknown() {
+		return
+	}
+
+	// Get the underlying attr.Value from the types.Dynamic value
+	underlyingVal := req.PlanValue.UnderlyingValue()
+
+	// Check if the underlying value is actually a types.String.
+	// This modifier is only interested in normalizing schema_def if it's provided as a string.
+	// If it's an HCL object/map, it will be handled by json.Marshal during API conversion.
+	plannedStringVal, ok := underlyingVal.(types.String)
+	if !ok {
+		// Not a types.String (e.g. it was an HCL object), so this modifier does not apply.
+		return
+	}
+
+	// Now we have a types.String, check if it's null or unknown.
+	if plannedStringVal.IsNull() || plannedStringVal.IsUnknown() {
+		return
+	}
+
+	jsonStr := plannedStringVal.ValueString()
+
+	if jsonStr == "" { // An empty string is not valid JSON for a map.
+		return
+	}
+
+	var data map[string]interface{}
+	err := json.Unmarshal([]byte(jsonStr), &data)
+	if err != nil {
+		// Not valid JSON, so we don't normalize. Let schema validation catch it.
+		// Alternatively, could add a warning:
+		// resp.Diagnostics.AddAttributeWarning(req.Path, "Non-JSON String for schema_def", "schema_def was provided as a string, but it is not valid JSON. Normalization skipped.")
+		return
+	}
+
+	// Marshal it back to get the canonical (sorted keys) version.
+	normalizedBytes, err := json.Marshal(data)
+	if err != nil {
+		resp.Diagnostics.AddAttributeError(req.Path, "Failed to Normalize schema_def", fmt.Sprintf("Error re-marshalling schema_def JSON: %s", err))
+		return
+	}
+
+	normalizedStringValue := types.StringValue(string(normalizedBytes))
+	resp.PlanValue = types.DynamicValue(normalizedStringValue)
+}
+
+// Ensure the implementation satisfies the interface
+var _ planmodifier.Dynamic = normalizeSchemaDefDynamicModifier{}
+
+// Helper function to create the modifier
+func normalizeSchemaDef() planmodifier.Dynamic {
+	return normalizeSchemaDefDynamicModifier{}
 }
 
 // capabilityConfigSchemaAttributes, capabilityConfigModelToAPI, capabilityConfigAPItoModel
