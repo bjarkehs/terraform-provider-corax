@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"sort"
-	// "bytes" // For comparing JSON bytes if needed, or for compacting - not strictly needed for this impl
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -133,12 +132,12 @@ type normalizeSchemaDefDynamicModifier struct{}
 
 // Description returns a human-readable description of the plan modifier.
 func (m normalizeSchemaDefDynamicModifier) Description(ctx context.Context) string {
-	return "Normalizes the JSON string representation of schema_def by sorting object keys, ensuring a canonical form."
+	return "Normalizes the schema_def attribute to a canonical JSON string representation by sorting object keys. This applies to both JSON string inputs and HCL map/object inputs."
 }
 
 // MarkdownDescription returns a markdown description of the plan modifier.
 func (m normalizeSchemaDefDynamicModifier) MarkdownDescription(ctx context.Context) string {
-	return "Normalizes the JSON string representation of `schema_def` by parsing it and re-serializing it. This process ensures that object keys within the JSON string are alphabetically sorted, resulting in a canonical string form. This helps prevent inconsistencies if the input JSON string has a different key order than the one produced by the provider when reading from the API."
+	return "Normalizes the `schema_def` attribute to a canonical JSON string. If `schema_def` is provided as a JSON string, it is parsed and re-serialized. If provided as an HCL map or object, it is converted to a map, then serialized to JSON. This process ensures that object keys within the resulting JSON string are alphabetically sorted. This helps prevent inconsistencies and ensures a canonical form in the plan, regardless of the input format (JSON string or HCL map/object)."
 }
 
 // PlanModifyDynamic implements the plan modification logic.
@@ -148,42 +147,74 @@ func (m normalizeSchemaDefDynamicModifier) PlanModifyDynamic(ctx context.Context
 		return
 	}
 
-	// Get the underlying attr.Value from the types.Dynamic value
 	underlyingVal := req.PlanValue.UnderlyingValue()
-
-	// Check if the underlying value is actually a types.String.
-	// This modifier is only interested in normalizing schema_def if it's provided as a string.
-	// If it's an HCL object/map, it will be handled by json.Marshal during API conversion.
-	plannedStringVal, ok := underlyingVal.(types.String)
-	if !ok {
-		// Not a types.String (e.g. it was an HCL object), so this modifier does not apply.
-		return
-	}
-
-	// Now we have a types.String, check if it's null or unknown.
-	if plannedStringVal.IsNull() || plannedStringVal.IsUnknown() {
-		return
-	}
-
-	jsonStr := plannedStringVal.ValueString()
-
-	if jsonStr == "" { // An empty string is not valid JSON for a map.
-		return
-	}
-
 	var data map[string]interface{}
-	err := json.Unmarshal([]byte(jsonStr), &data)
-	if err != nil {
-		// Not valid JSON, so we don't normalize. Let schema validation catch it.
-		// Alternatively, could add a warning:
-		// resp.Diagnostics.AddAttributeWarning(req.Path, "Non-JSON String for schema_def", "schema_def was provided as a string, but it is not valid JSON. Normalization skipped.")
+	var conversionDiags diag.Diagnostics
+
+	switch val := underlyingVal.(type) {
+	case types.String:
+		if val.IsNull() || val.IsUnknown() {
+			return
+		}
+		jsonStr := val.ValueString()
+		if jsonStr == "" { // An empty string is not valid JSON for a map.
+			// Consider if an empty string should be an error or treated as null.
+			// For now, returning, assuming schema validation will catch if it's problematic.
+			return
+		}
+		err := json.Unmarshal([]byte(jsonStr), &data)
+		if err != nil {
+			// Not valid JSON, so we don't normalize. Let schema validation catch it.
+			// Or add a warning: resp.Diagnostics.AddAttributeWarning(req.Path, "Non-JSON String for schema_def", "...")
+			return
+		}
+	case types.Object:
+		if val.IsNull() || val.IsUnknown() {
+			return
+		}
+		// Use As to convert types.Object to map[string]interface{}
+		conversionDiags = val.As(ctx, &data, basetypes.ObjectAsOptions{UnhandledNullAsEmpty: true, UnhandledUnknownAsEmpty: true})
+		resp.Diagnostics.Append(conversionDiags...)
+		if conversionDiags.HasError() {
+			return // Error during conversion
+		}
+	case types.Map:
+		if val.IsNull() || val.IsUnknown() {
+			return
+		}
+		// For types.Map, it's often easier to marshal to JSON and then unmarshal to map[string]interface{}
+		// or directly convert if elements are compatible.
+		// Here, we'll use the marshal/unmarshal approach for simplicity and consistency with how it might be handled elsewhere.
+		jsonBytes, err := json.Marshal(val)
+		if err != nil {
+			resp.Diagnostics.AddAttributeError(req.Path, "SchemaDef HCL Map Marshal Error", fmt.Sprintf("Failed to marshal HCL map for schema_def to JSON: %s", err.Error()))
+			return
+		}
+		err = json.Unmarshal(jsonBytes, &data)
+		if err != nil {
+			resp.Diagnostics.AddAttributeError(req.Path, "SchemaDef HCL Map Unmarshal Error", fmt.Sprintf("Failed to unmarshal intermediate JSON for schema_def HCL map: %s", err.Error()))
+			return
+		}
+	default:
+		// Not a type we're handling for normalization (e.g., already a different dynamic type, or some other TF type)
 		return
 	}
+
+	// If data is nil (e.g. from an empty JSON string or empty HCL map that resulted in nil map),
+	// we might want to set the plan to types.DynamicNull() or types.StringNull() depending on desired behavior.
+	// For now, if data is nil, Marshall will produce "null" string.
+	if data == nil {
+		// If the original input was an empty string or an empty map that should represent null or an empty object,
+		// this will result in the string "null". If an empty object "{}" is desired for an empty map,
+		// ensure 'data' is an empty map `map[string]interface{}{}` instead of nil.
+		// For this modifier, "null" is an acceptable canonical form for a nil/empty schema.
+	}
+
 
 	// Marshal it back to get the canonical (sorted keys) version.
 	normalizedBytes, err := json.Marshal(data)
 	if err != nil {
-		resp.Diagnostics.AddAttributeError(req.Path, "Failed to Normalize schema_def", fmt.Sprintf("Error re-marshalling schema_def JSON: %s", err))
+		resp.Diagnostics.AddAttributeError(req.Path, "Failed to Normalize schema_def", fmt.Sprintf("Error re-marshalling schema_def to JSON: %s", err))
 		return
 	}
 

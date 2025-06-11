@@ -28,8 +28,8 @@ type ModelProviderCreate struct {
 // For a more typical partial update, fields would be pointers.
 // Sticking to the spec for now, which implies full replacement.
 type ModelProviderUpdate struct {
+	ID            string            `json:"id"`            // This is in the API spec for ModelProviderUpdate body, but usually not for PUT body.
 	Name          string            `json:"name"`          // Required in API spec for PUT
 	ProviderType  string            `json:"provider_type"` // Required in API spec for PUT
 	Configuration map[string]string `json:"configuration"` // Required in API spec for PUT
-	// ID string `json:"id"` // This is in the API spec for ModelProviderUpdate body, but usually not for PUT body. Omitting for now.
 }
