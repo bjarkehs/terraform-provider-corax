@@ -110,6 +110,7 @@ func modelProviderResourceModelToAPICreate(ctx context.Context, plan ModelProvid
 // This helper will construct a full object based on the plan.
 func modelProviderResourceModelToAPIUpdate(ctx context.Context, plan ModelProviderResourceModel, diags *diag.Diagnostics) (*coraxclient.ModelProviderUpdate, error) {
 	apiUpdate := &coraxclient.ModelProviderUpdate{
+		ID:           plan.ID.ValueString(), // TODO: ID is currently required for update?
 		Name:         plan.Name.ValueString(),
 		ProviderType: plan.ProviderType.ValueString(),
 	}
@@ -302,7 +303,7 @@ func (r *ModelProviderResource) Update(ctx context.Context, req resource.UpdateR
 	// Update computed fields from the server's response.
 	// Crucially, set Configuration to what was planned.
 	finalState := plan
-	finalState.Configuration = plannedConfiguration  // Use the planned configuration
+	finalState.Configuration = plannedConfiguration // Use the planned configuration
 	// Name and ProviderType are taken from the 'plan' variable, which reflects the user's intent.
 	// ID is not expected to change on update / is UseStateForUnknown or immutable.
 

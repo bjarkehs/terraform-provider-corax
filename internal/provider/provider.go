@@ -138,21 +138,15 @@ func (p *CoraxProvider) Resources(ctx context.Context) []func() resource.Resourc
 }
 
 func (p *CoraxProvider) EphemeralResources(ctx context.Context) []func() ephemeral.EphemeralResource { // Updated receiver to CoraxProvider
-	return []func() ephemeral.EphemeralResource{
-		NewExampleEphemeralResource,
-	}
+	return []func() ephemeral.EphemeralResource{}
 }
 
 func (p *CoraxProvider) DataSources(ctx context.Context) []func() datasource.DataSource { // Updated receiver to CoraxProvider
-	return []func() datasource.DataSource{
-		NewExampleDataSource,
-	}
+	return []func() datasource.DataSource{}
 }
 
 func (p *CoraxProvider) Functions(ctx context.Context) []func() function.Function { // Updated receiver to CoraxProvider
-	return []func() function.Function{
-		NewExampleFunction,
-	}
+	return []func() function.Function{}
 }
 
 func New(version string) func() provider.Provider {
