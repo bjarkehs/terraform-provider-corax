@@ -35,10 +35,10 @@ type ProjectResource struct {
 // ProjectResourceModel describes the resource data model.
 // Based on openapi.json components.schemas.Project
 type ProjectResourceModel struct {
-	ID              types.String `tfsdk:"id"`
-	Name            types.String `tfsdk:"name"`
-	Description     types.String `tfsdk:"description"`
-	IsPublic        types.Bool   `tfsdk:"is_public"`
+	ID          types.String `tfsdk:"id"`
+	Name        types.String `tfsdk:"name"`
+	Description types.String `tfsdk:"description"`
+	IsPublic    types.Bool   `tfsdk:"is_public"`
 }
 
 // Helper function to map API Project to Terraform model
@@ -179,45 +179,13 @@ func (r *ProjectResource) Update(ctx context.Context, req resource.UpdateRequest
 	tflog.Debug(ctx, fmt.Sprintf("Updating Project with ID: %s", projectID))
 
 	projectUpdatePayload := coraxclient.ProjectUpdate{}
-	// Only include fields in the payload if they have changed.
-	if !plan.Name.Equal(state.Name) {
-		name := plan.Name.ValueString()
-		projectUpdatePayload.Name = &name
-	}
-	if !plan.Description.Equal(state.Description) {
-		if plan.Description.IsNull() {
-			// To clear the description, the API might expect null or an empty string.
-			// Assuming API handles "" as "clear description". If it needs explicit null, this needs adjustment.
-			// For now, let's send what's in the plan. If plan.Description is null, it won't be set.
-			// If it's an empty string, it will be sent.
-			// The ProjectUpdate struct uses *string, so if plan.Description is null, omitempty works.
-			// If plan.Description is "", we send "".
-			if !plan.Description.IsUnknown() { // only set if not unknown
-				desc := plan.Description.ValueString()
-				projectUpdatePayload.Description = &desc
-			}
-		} else {
-			desc := plan.Description.ValueString()
-			projectUpdatePayload.Description = &desc
-		}
-	}
-	if !plan.IsPublic.Equal(state.IsPublic) {
-		if !plan.IsPublic.IsUnknown() { // only set if not unknown
-			isPublic := plan.IsPublic.ValueBool()
-			projectUpdatePayload.IsPublic = &isPublic
-		}
-	}
 
-	// Check if there's anything to update
-	// This check might be too simplistic if the API interprets absence of a field vs. explicit null differently.
-	// For now, if the payload is empty, we might skip the API call.
-	// However, it's safer to let the API handle an empty PUT if that's its behavior.
-	// The openapi spec for ProjectUpdate has all fields as optional.
-	// if projectUpdatePayload.Name == nil && projectUpdatePayload.Description == nil && projectUpdatePayload.IsPublic == nil {
-	// 	tflog.Debug(ctx, "No changes detected for Project update.")
-	// 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...) // Ensure state matches plan
-	// 	return
-	// }
+	projectUpdatePayload.Name = plan.Name.ValueString()
+
+	desc := plan.Description.ValueString()
+	projectUpdatePayload.Description = &desc
+
+	projectUpdatePayload.IsPublic = plan.IsPublic.ValueBool()
 
 	updatedProject, err := r.client.UpdateProject(ctx, projectID, projectUpdatePayload)
 	if err != nil {
