@@ -11,9 +11,9 @@ type ProjectCreate struct {
 // ProjectUpdate represents the request body for updating a project.
 // Based on openapi.json components.schemas.ProjectUpdate
 type ProjectUpdate struct {
-	Name        *string `json:"name,omitempty"`
+	Name        string  `json:"name"`
 	Description *string `json:"description,omitempty"`
-	IsPublic    *bool   `json:"is_public,omitempty"`
+	IsPublic    bool    `json:"is_public"`
 }
 
 // Project represents the project details.
