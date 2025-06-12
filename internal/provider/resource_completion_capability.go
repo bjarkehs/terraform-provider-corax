@@ -119,8 +119,8 @@ func (r *CompletionCapabilityResource) Schema(ctx context.Context, req resource.
 				MarkdownDescription: "Configuration settings for the capability's behavior.",
 				Attributes:          capabilityConfigSchemaAttributes(), // Defined in chat_capability_resource.go (or move to a common place)
 			},
-			"owner":       schema.StringAttribute{Computed: true, MarkdownDescription: "Owner of the capability.", PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
-			"type":        schema.StringAttribute{Computed: true, MarkdownDescription: "Type of the capability (should be 'completion').", PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
+			"owner": schema.StringAttribute{Computed: true, MarkdownDescription: "Owner of the capability.", PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
+			"type":  schema.StringAttribute{Computed: true, MarkdownDescription: "Type of the capability (should be 'completion').", PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 		},
 	}
 }
@@ -149,7 +149,6 @@ func (m normalizeSchemaDefDynamicModifier) PlanModifyDynamic(ctx context.Context
 
 	underlyingVal := req.PlanValue.UnderlyingValue()
 	var data map[string]interface{}
-	var conversionDiags diag.Diagnostics
 
 	switch val := underlyingVal.(type) {
 	case types.String:
@@ -172,11 +171,16 @@ func (m normalizeSchemaDefDynamicModifier) PlanModifyDynamic(ctx context.Context
 		if val.IsNull() || val.IsUnknown() {
 			return
 		}
-		// Use As to convert types.Object to map[string]interface{}
-		conversionDiags = val.As(ctx, &data, basetypes.ObjectAsOptions{UnhandledNullAsEmpty: true, UnhandledUnknownAsEmpty: true})
-		resp.Diagnostics.Append(conversionDiags...)
-		if conversionDiags.HasError() {
-			return // Error during conversion
+
+		jsonBytes, err := json.Marshal(val)
+		if err != nil {
+			resp.Diagnostics.AddAttributeError(req.Path, "SchemaDef HCL Object Marshal Error", fmt.Sprintf("Failed to marshal HCL object for schema_def to JSON: %s", err.Error()))
+			return
+		}
+
+		err = json.Unmarshal(jsonBytes, &data)
+		if err != nil {
+			resp.Diagnostics.AddAttributeError(req.Path, "SchemaDef HCL Object Unmarshal Error", fmt.Sprintf("Failed to marshal HCL object for schema_def to JSON: %s", err.Error()))
 		}
 	case types.Map:
 		if val.IsNull() || val.IsUnknown() {
@@ -209,7 +213,6 @@ func (m normalizeSchemaDefDynamicModifier) PlanModifyDynamic(ctx context.Context
 		// ensure 'data' is an empty map `map[string]interface{}{}` instead of nil.
 		// For this modifier, "null" is an acceptable canonical form for a nil/empty schema.
 	}
-
 
 	// Marshal it back to get the canonical (sorted keys) version.
 	normalizedBytes, err := json.Marshal(data)
