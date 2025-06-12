@@ -39,10 +39,6 @@ type ProjectResourceModel struct {
 	Name            types.String `tfsdk:"name"`
 	Description     types.String `tfsdk:"description"`
 	IsPublic        types.Bool   `tfsdk:"is_public"`
-	Owner           types.String `tfsdk:"owner"`
-	CollectionCount types.Int64  `tfsdk:"collection_count"`
-	CapabilityCount types.Int64  `tfsdk:"capability_count"`
-	// _links is not typically managed by Terraform directly as an attribute
 }
 
 // Helper function to map API Project to Terraform model
@@ -55,9 +51,6 @@ func mapProjectToModel(project *coraxclient.Project, model *ProjectResourceModel
 		model.Description = types.StringNull()
 	}
 	model.IsPublic = types.BoolValue(project.IsPublic)
-	model.Owner = types.StringValue(project.Owner)
-	model.CollectionCount = types.Int64Value(int64(project.CollectionCount))
-	model.CapabilityCount = types.Int64Value(int64(project.CapabilityCount))
 }
 
 func (r *ProjectResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -91,18 +84,6 @@ func (r *ProjectResource) Schema(ctx context.Context, req resource.SchemaRequest
 					// Use the API's default if the user doesn't specify a value.
 					boolplanmodifier.UseStateForUnknown(),
 				},
-			},
-			"owner": schema.StringAttribute{
-				Computed:            true,
-				MarkdownDescription: "The owner of the project.",
-			},
-			"collection_count": schema.Int64Attribute{
-				Computed:            true,
-				MarkdownDescription: "The number of collections associated with this project.",
-			},
-			"capability_count": schema.Int64Attribute{
-				Computed:            true,
-				MarkdownDescription: "The number of capabilities associated with this project.",
 			},
 		},
 	}
