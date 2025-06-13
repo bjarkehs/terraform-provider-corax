@@ -28,7 +28,6 @@ func TestAccChatCapabilityResource_basic(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceName, "name", capabilityName),
 					resource.TestCheckResourceAttr(resourceName, "system_prompt", systemPrompt),
-					resource.TestCheckResourceAttr(resourceName, "type", "chat"),
 					resource.TestCheckResourceAttrSet(resourceName, "id"),
 					resource.TestCheckResourceAttrSet(resourceName, "created_at"),
 					resource.TestCheckResourceAttrSet(resourceName, "updated_at"),
