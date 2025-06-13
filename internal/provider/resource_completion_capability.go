@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"sort"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -46,7 +45,7 @@ type CompletionCapabilityResourceModel struct {
 	ProjectID        types.String  `tfsdk:"project_id"`    // Nullable
 	SystemPrompt     types.String  `tfsdk:"system_prompt"` // Shared with Chat, but also in Completion
 	CompletionPrompt types.String  `tfsdk:"completion_prompt"`
-	Variables        types.List    `tfsdk:"variables"`   // Nullable, list of strings
+	Variables        types.Set     `tfsdk:"variables"`   // Nullable, set of strings
 	OutputType       types.String  `tfsdk:"output_type"` // "schema" or "text"
 	SchemaDef        types.Dynamic `tfsdk:"schema_def"`  // Nullable, for structured output definition
 	Owner            types.String  `tfsdk:"owner"`       // Computed
@@ -96,10 +95,10 @@ func (r *CompletionCapabilityResource) Schema(ctx context.Context, req resource.
 				Required:            true,
 				MarkdownDescription: "The main prompt for which a completion is generated. May include placeholders for variables.",
 			},
-			"variables": schema.ListAttribute{
+			"variables": schema.SetAttribute{
 				ElementType:         types.StringType,
 				Optional:            true,
-				MarkdownDescription: "A list of variable names (strings) that can be interpolated into the `completion_prompt`.",
+				MarkdownDescription: "A set of variable names (strings) that can be interpolated into the `completion_prompt`. Order is not significant.",
 			},
 			"output_type": schema.StringAttribute{
 				Required:            true,
@@ -404,33 +403,34 @@ func mapAPICompletionCapabilityToModel(apiCap *coraxclient.CapabilityRepresentat
 					}
 				}
 				if allStrings {
-					listValue, conversionDiags := types.ListValueFrom(ctx, types.StringType, strVars)
+					setValue, conversionDiags := types.SetValueFrom(ctx, types.StringType, strVars)
 					diags.Append(conversionDiags...)
 					if !conversionDiags.HasError() {
-						model.Variables = listValue // Handles empty list correctly (non-null, empty list)
+						model.Variables = setValue // Handles empty set correctly (non-null, empty set)
 					} else {
-						model.Variables = types.ListNull(types.StringType) // Error in types.ListValueFrom
+						model.Variables = types.SetNull(types.StringType) // Error in types.SetValueFrom
 					}
 				} else {
-					model.Variables = types.ListNull(types.StringType) // Non-string element found
+					model.Variables = types.SetNull(types.StringType) // Non-string element found
 				}
 			} else if varsMap, ok := varsData.(map[string]interface{}); ok { // Handle map from GET
 				strVarKeys := make([]string, 0, len(varsMap))
 				for k := range varsMap {
 					strVarKeys = append(strVarKeys, k)
 				}
-				sort.Strings(strVarKeys) // Ensure consistent order
+				// No need to sort keys for a set, but doesn't harm if API returns a list of keys that were sorted
+				// sort.Strings(strVarKeys) // Order doesn't matter for a Set
 
-				listValue, conversionDiags := types.ListValueFrom(ctx, types.StringType, strVarKeys)
+				setValue, conversionDiags := types.SetValueFrom(ctx, types.StringType, strVarKeys)
 				diags.Append(conversionDiags...)
 				if !conversionDiags.HasError() {
-					model.Variables = listValue
+					model.Variables = setValue
 				} else {
-					model.Variables = types.ListNull(types.StringType)
+					model.Variables = types.SetNull(types.StringType)
 					diags.AddAttributeError(
 						path.Root("variables"),
-						"Variable Conversion Error (Map to List)",
-						fmt.Sprintf("Failed to convert variable keys from API map to list: %v", conversionDiags),
+						"Variable Conversion Error (Map to Set)",
+						fmt.Sprintf("Failed to convert variable keys from API map to set: %v", conversionDiags),
 					)
 				}
 			} else { // apiCap.Input["variables"] is present but not []interface{} and not map[string]interface{}
@@ -439,13 +439,13 @@ func mapAPICompletionCapabilityToModel(apiCap *coraxclient.CapabilityRepresentat
 					"Incorrect Type for Variables in API Response",
 					fmt.Sprintf("Expected 'variables' in API input to be a list or map of strings, but got %T. Treating variables as null.", varsData),
 				)
-				model.Variables = types.ListNull(types.StringType)
+				model.Variables = types.SetNull(types.StringType)
 			}
 		} else { // "variables" key not found in apiCap.Input or its value is JSON null
-			model.Variables = types.ListNull(types.StringType)
+			model.Variables = types.SetNull(types.StringType)
 		}
 	} else { // apiCap.Input map itself is nil
-		model.Variables = types.ListNull(types.StringType)
+		model.Variables = types.SetNull(types.StringType)
 		tflog.Debug(ctx, fmt.Sprintf("apiCap.Input is nil for capability %s. Variables will be null.", apiCap.ID))
 	}
 
