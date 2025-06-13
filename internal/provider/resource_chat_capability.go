@@ -43,8 +43,8 @@ type ChatCapabilityResourceModel struct {
 	ProjectID    types.String `tfsdk:"project_id"` // Nullable
 	SystemPrompt types.String `tfsdk:"system_prompt"`
 	// CollectionIDs types.List   `tfsdk:"collection_ids"` // Omitted for now as per decision to skip collection-related features
-	Owner      types.String `tfsdk:"owner"`       // Computed
-	Type       types.String `tfsdk:"type"`        // Computed, should always be "chat"
+	Owner types.String `tfsdk:"owner"` // Computed
+	Type  types.String `tfsdk:"type"`  // Computed, should always be "chat"
 }
 
 func (r *ChatCapabilityResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -95,8 +95,8 @@ func (r *ChatCapabilityResource) Schema(ctx context.Context, req resource.Schema
 				MarkdownDescription: "Configuration settings for the capability's behavior.",
 				Attributes:          capabilityConfigSchemaAttributes(), // Use shared schema attributes
 			},
-			"owner":       schema.StringAttribute{Computed: true, MarkdownDescription: "Owner of the capability.", PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
-			"type":        schema.StringAttribute{Computed: true, MarkdownDescription: "Type of the capability (should be 'chat').", PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
+			"owner": schema.StringAttribute{Computed: true, MarkdownDescription: "Owner of the capability.", PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
+			"type":  schema.StringAttribute{Computed: true, MarkdownDescription: "Type of the capability (should be 'chat').", PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 		},
 	}
 }

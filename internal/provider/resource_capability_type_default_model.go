@@ -205,7 +205,7 @@ func (r *CapabilityTypeDefaultModelResource) Delete(ctx context.Context, req res
 	// If PUT requires the field and an empty string is not "null", then true deletion isn't possible
 	// without specific API support.
 	// For now, we'll make Delete a no-op with a warning, as standard PUT might not clear it.
-	tflog.Warn(ctx, fmt.Sprintf("Deletion of a capability_type_default_model resource does not actively clear the default model in Corax API due to lack of a dedicated 'unset' operation. The resource will be removed from Terraform state. If you need to clear the default, do so via the Corax API/UI if possible, or set it to a different valid model deployment ID."))
+	tflog.Warn(ctx, "Deletion of a capability_type_default_model resource does not actively clear the default model in Corax API due to lack of a dedicated 'unset' operation. The resource will be removed from Terraform state. If you need to clear the default, do so via the Corax API/UI if possible, or set it to a different valid model deployment ID.")
 }
 
 // ImportState implements resource.ResourceWithImportState.

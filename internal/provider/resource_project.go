@@ -33,7 +33,7 @@ type ProjectResource struct {
 }
 
 // ProjectResourceModel describes the resource data model.
-// Based on openapi.json components.schemas.Project
+// Based on openapi.json components.schemas.Project.
 type ProjectResourceModel struct {
 	ID          types.String `tfsdk:"id"`
 	Name        types.String `tfsdk:"name"`
@@ -41,7 +41,7 @@ type ProjectResourceModel struct {
 	IsPublic    types.Bool   `tfsdk:"is_public"`
 }
 
-// Helper function to map API Project to Terraform model
+// Helper function to map API Project to Terraform model.
 func mapProjectToModel(project *coraxclient.Project, model *ProjectResourceModel) {
 	model.ID = types.StringValue(project.ID)
 	model.Name = types.StringValue(project.Name)

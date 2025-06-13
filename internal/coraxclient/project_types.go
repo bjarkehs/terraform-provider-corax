@@ -1,7 +1,7 @@
 package coraxclient
 
 // ProjectCreate represents the request body for creating a project.
-// Based on openapi.json components.schemas.ProjectCreate
+// Based on openapi.json components.schemas.ProjectCreate.
 type ProjectCreate struct {
 	Name        string  `json:"name"`
 	Description *string `json:"description,omitempty"`
@@ -9,7 +9,7 @@ type ProjectCreate struct {
 }
 
 // ProjectUpdate represents the request body for updating a project.
-// Based on openapi.json components.schemas.ProjectUpdate
+// Based on openapi.json components.schemas.ProjectUpdate.
 type ProjectUpdate struct {
 	Name        string  `json:"name"`
 	Description *string `json:"description,omitempty"`
@@ -17,7 +17,7 @@ type ProjectUpdate struct {
 }
 
 // Project represents the project details.
-// Based on openapi.json components.schemas.Project
+// Based on openapi.json components.schemas.Project.
 type Project struct {
 	// Links       map[string]HateoasLink `json:"_links,omitempty"` // HateoasLink not defined yet
 	ID              string  `json:"id"`

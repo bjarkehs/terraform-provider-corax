@@ -1,6 +1,6 @@
 package coraxclient
 
-// ModelProvider maps to components.schemas.ModelProvider
+// ModelProvider maps to components.schemas.ModelProvider.
 type ModelProvider struct {
 	// Links map[string]HateoasLink `json:"_links,omitempty"`
 	Name          string            `json:"name"`
@@ -14,14 +14,14 @@ type ModelProvider struct {
 	// Deprecated fields: api_endpoint, api_key are omitted as they should be part of Configuration
 }
 
-// ModelProviderCreate maps to components.schemas.ModelProviderCreate
+// ModelProviderCreate maps to components.schemas.ModelProviderCreate.
 type ModelProviderCreate struct {
 	Name          string            `json:"name"`
 	ProviderType  string            `json:"provider_type"`
 	Configuration map[string]string `json:"configuration"`
 }
 
-// ModelProviderUpdate maps to components.schemas.ModelProviderUpdate
+// ModelProviderUpdate maps to components.schemas.ModelProviderUpdate.
 // The API spec for ModelProviderUpdate includes `id` as required, which is unusual for an update payload.
 // Typically, ID is in the path. Assuming `id` is not part of the request body for an update.
 // The spec also makes all other fields required for PUT.

@@ -16,7 +16,7 @@ import (
 
 // --- Reusable Model Structs for Capability Config ---
 
-// CapabilityConfigModel maps to components.schemas.CapabilityConfig
+// CapabilityConfigModel maps to components.schemas.CapabilityConfig.
 type CapabilityConfigModel struct {
 	Temperature    types.Float64 `tfsdk:"temperature"`     // Nullable
 	BlobConfig     types.Object  `tfsdk:"blob_config"`     // Nullable
@@ -24,14 +24,14 @@ type CapabilityConfigModel struct {
 	ContentTracing types.Bool    `tfsdk:"content_tracing"` // Default true
 }
 
-// BlobConfigModel maps to components.schemas.BlobConfig
+// BlobConfigModel maps to components.schemas.BlobConfig.
 type BlobConfigModel struct {
 	MaxFileSizeMB    types.Int64 `tfsdk:"max_file_size_mb"`   // Default 20
 	MaxBlobs         types.Int64 `tfsdk:"max_blobs"`          // Default 10
 	AllowedMimeTypes types.List  `tfsdk:"allowed_mime_types"` // Default ["image/png", "image/jpeg"]
 }
 
-// DataRetentionModel for the data_retention block
+// DataRetentionModel for the data_retention block.
 type DataRetentionModel struct {
 	Type  types.String `tfsdk:"type"`  // Will store "timed" or "infinite"
 	Hours types.Int64  `tfsdk:"hours"` // Nullable, only used if type is "timed"
@@ -80,7 +80,8 @@ func (v dataRetentionValidator) ValidateObject(ctx context.Context, req validato
 
 	hoursIsSet := !dataRetention.Hours.IsNull() && !dataRetention.Hours.IsUnknown()
 
-	if retentionType == "timed" {
+	switch retentionType {
+	case "timed":
 		if !hoursIsSet {
 			resp.Diagnostics.AddAttributeError(
 				req.Path.AtName("hours"), // Path to the 'hours' attribute within the data_retention object
@@ -88,7 +89,7 @@ func (v dataRetentionValidator) ValidateObject(ctx context.Context, req validato
 				"The 'hours' attribute must be configured when data retention 'type' is 'timed'.",
 			)
 		}
-	} else if retentionType == "infinite" {
+	case "infinite":
 		if hoursIsSet {
 			resp.Diagnostics.AddAttributeError(
 				req.Path.AtName("hours"), // Path to the 'hours' attribute
@@ -263,7 +264,8 @@ func capabilityConfigModelToAPI(ctx context.Context, modelConfig types.Object, d
 			apiDR.Type = retentionType
 			drChanges = true // Setting the type is a change
 
-			if retentionType == "timed" {
+			switch retentionType {
+			case "timed":
 				// Schema ensures Hours is non-null and valid if Type is "timed"
 				if !drModel.Hours.IsNull() && !drModel.Hours.IsUnknown() {
 					val := int(drModel.Hours.ValueInt64())
@@ -271,7 +273,7 @@ func capabilityConfigModelToAPI(ctx context.Context, modelConfig types.Object, d
 				}
 				// If Hours were null/unknown here despite schema, it's an issue.
 				// The API requires 'hours' for 'timed' type.
-			} else if retentionType == "infinite" {
+			case "infinite":
 				apiDR.Hours = nil // Explicitly ensure Hours is not sent for infinite type
 			}
 		}

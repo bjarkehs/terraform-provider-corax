@@ -2,7 +2,7 @@ package coraxclient
 
 // --- Common Capability Structures ---
 
-// CapabilityConfig maps to components.schemas.CapabilityConfig
+// CapabilityConfig maps to components.schemas.CapabilityConfig.
 type CapabilityConfig struct {
 	Temperature    *float64       `json:"temperature,omitempty"`
 	BlobConfig     *BlobConfig    `json:"blob_config,omitempty"`
@@ -10,14 +10,14 @@ type CapabilityConfig struct {
 	ContentTracing *bool          `json:"content_tracing,omitempty"`
 }
 
-// BlobConfig maps to components.schemas.BlobConfig
+// BlobConfig maps to components.schemas.BlobConfig.
 type BlobConfig struct {
 	MaxFileSizeMB    *int     `json:"max_file_size_mb,omitempty"`
 	MaxBlobs         *int     `json:"max_blobs,omitempty"`
 	AllowedMimeTypes []string `json:"allowed_mime_types,omitempty"`
 }
 
-// DataRetention is a wrapper for polymorphic retention types
+// DataRetention is a wrapper for polymorphic retention types.
 type DataRetention struct {
 	Type  string `json:"type"`            // "timed" or "infinite"
 	Hours *int   `json:"hours,omitempty"` // For TimedDataRetention
@@ -25,7 +25,7 @@ type DataRetention struct {
 
 // --- Chat Capability Specific Structures ---
 
-// ChatCapabilityCreate maps to components.schemas.ChatCapabilityCreate
+// ChatCapabilityCreate maps to components.schemas.ChatCapabilityCreate.
 type ChatCapabilityCreate struct {
 	Name         string            `json:"name"`
 	IsPublic     *bool             `json:"is_public,omitempty"`
@@ -37,7 +37,7 @@ type ChatCapabilityCreate struct {
 	// CollectionIDs []string       `json:"collection_ids,omitempty"` // Omitted for now
 }
 
-// ChatCapabilityUpdate maps to components.schemas.ChatCapabilityUpdate
+// ChatCapabilityUpdate maps to components.schemas.ChatCapabilityUpdate.
 type ChatCapabilityUpdate struct {
 	Name         *string           `json:"name,omitempty"` // Note: API spec says name is required here, but usually updates are partial.
 	IsPublic     *bool             `json:"is_public,omitempty"`
@@ -96,7 +96,7 @@ type CapabilityRepresentation struct {
 
 // --- Completion Capability Specific Structures ---
 
-// CompletionCapabilityCreate maps to components.schemas.CompletionCapabilityCreate
+// CompletionCapabilityCreate maps to components.schemas.CompletionCapabilityCreate.
 type CompletionCapabilityCreate struct {
 	Name             string                 `json:"name"`
 	IsPublic         *bool                  `json:"is_public,omitempty"`
@@ -111,7 +111,7 @@ type CompletionCapabilityCreate struct {
 	SchemaDef        map[string]interface{} `json:"schema_def,omitempty"` // Used if output_type is "schema"
 }
 
-// CompletionCapabilityUpdate maps to components.schemas.CompletionCapabilityUpdate
+// CompletionCapabilityUpdate maps to components.schemas.CompletionCapabilityUpdate.
 type CompletionCapabilityUpdate struct {
 	Name             *string                `json:"name,omitempty"`
 	IsPublic         *bool                  `json:"is_public,omitempty"`
@@ -128,12 +128,12 @@ type CompletionCapabilityUpdate struct {
 
 // --- Capability Type Specific Structures ---
 
-// DefaultModelDeploymentUpdate maps to components.schemas.DefaultModelDeploymentUpdate
+// DefaultModelDeploymentUpdate maps to components.schemas.DefaultModelDeploymentUpdate.
 type DefaultModelDeploymentUpdate struct {
 	DefaultModelDeploymentID string `json:"default_model_deployment_id"`
 }
 
-// CapabilityTypeRepresentation maps to components.schemas.CapabilityTypeRepresentation
+// CapabilityTypeRepresentation maps to components.schemas.CapabilityTypeRepresentation.
 type CapabilityTypeRepresentation struct {
 	// Links map[string]HateoasLink `json:"_links,omitempty"`
 	ID                       string  `json:"id"`   // This is the capability_type string like "chat"
@@ -143,7 +143,7 @@ type CapabilityTypeRepresentation struct {
 }
 
 // CapabilityTypesRepresentation maps to components.schemas.CapabilityTypesRepresentation
-// Used for GET /v1/capability-types
+// Used for GET /v1/capability-types.
 type CapabilityTypesRepresentation struct {
 	// Links   map[string]HateoasLink         `json:"_links,omitempty"`
 	Embedded []CapabilityTypeRepresentation `json:"_embedded"`

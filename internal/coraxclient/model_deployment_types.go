@@ -1,6 +1,6 @@
 package coraxclient
 
-// ModelDeployment maps to components.schemas.ModelDeployment
+// ModelDeployment maps to components.schemas.ModelDeployment.
 type ModelDeployment struct {
 	// Links map[string]HateoasLink `json:"_links,omitempty"` // Assuming HateoasLink is defined elsewhere or not strictly needed for TF state
 	Name           string            `json:"name"`
@@ -17,7 +17,7 @@ type ModelDeployment struct {
 	// Deprecated fields from OpenAPI spec are omitted: api_version, model_name, deployment_name
 }
 
-// ModelDeploymentCreate maps to components.schemas.ModelDeploymentCreate
+// ModelDeploymentCreate maps to components.schemas.ModelDeploymentCreate.
 type ModelDeploymentCreate struct {
 	Name           string            `json:"name"`
 	Description    *string           `json:"description,omitempty"`
