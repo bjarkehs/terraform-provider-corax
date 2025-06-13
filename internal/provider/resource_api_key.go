@@ -185,9 +185,9 @@ func (r *APIKeyResource) Read(ctx context.Context, req resource.ReadRequest, res
 		data.ExpiresAt = types.StringValue(*apiKey.ExpiresAt)
 	} else {
 		data.ExpiresAt = types.StringNull() // Should not happen
-		}
-		data.Prefix = types.StringValue(apiKey.Prefix)
-		data.IsActive = types.BoolValue(apiKey.IsActive)
+	}
+	data.Prefix = types.StringValue(apiKey.Prefix)
+	data.IsActive = types.BoolValue(apiKey.IsActive)
 	if apiKey.LastUsedAt != nil && *apiKey.LastUsedAt != "" {
 		data.LastUsedAt = types.StringValue(*apiKey.LastUsedAt)
 	} else {

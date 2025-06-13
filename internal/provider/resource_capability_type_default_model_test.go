@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
-	// "github.com/hashicorp/terraform-plugin-testing/terraform" // Not explicitly used for checks here
+	// "github.com/hashicorp/terraform-plugin-testing/terraform" // Not explicitly used for checks here.
 )
 
 const testAccCapabilityTypeDefaultModelDeploymentIDEnvVar = "CORAX_TEST_DEFAULT_MODEL_DEPLOYMENT_ID"

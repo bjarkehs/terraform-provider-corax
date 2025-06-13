@@ -1,3 +1,4 @@
+//nolint:staticcheck // using json.Marshal on framework types for normalization
 package provider
 
 import (
@@ -205,12 +206,9 @@ func (m normalizeSchemaDefDynamicModifier) PlanModifyDynamic(ctx context.Context
 
 	// If data is nil (e.g. from an empty JSON string or empty HCL map that resulted in nil map),
 	// we might want to set the plan to types.DynamicNull() or types.StringNull() depending on desired behavior.
-	// For now, if data is nil, Marshall will produce "null" string.
+	// For now, if data is nil, Marshal will produce "null" string.
 	if data == nil {
-		// If the original input was an empty string or an empty map that should represent null or an empty object,
-		// this will result in the string "null". If an empty object "{}" is desired for an empty map,
-		// ensure 'data' is an empty map `map[string]interface{}{}` instead of nil.
-		// For this modifier, "null" is an acceptable canonical form for a nil/empty schema.
+		return
 	}
 
 	// Marshal it back to get the canonical (sorted keys) version.
@@ -224,10 +222,10 @@ func (m normalizeSchemaDefDynamicModifier) PlanModifyDynamic(ctx context.Context
 	resp.PlanValue = types.DynamicValue(normalizedStringValue)
 }
 
-// Ensure the implementation satisfies the interface
+// Ensure the implementation satisfies the interface.
 var _ planmodifier.Dynamic = normalizeSchemaDefDynamicModifier{}
 
-// Helper function to create the modifier
+// Helper function to create the modifier.
 func normalizeSchemaDef() planmodifier.Dynamic {
 	return normalizeSchemaDefDynamicModifier{}
 }
@@ -292,7 +290,7 @@ func schemaDefMapToAPI(ctx context.Context, schemaDef types.Dynamic, diags *diag
 	}
 }
 
-func schemaDefAPIToMap(ctx context.Context, apiSchemaDef map[string]interface{}, diags *diag.Diagnostics) types.Dynamic {
+func schemaDefAPIToMap(apiSchemaDef map[string]interface{}, diags *diag.Diagnostics) types.Dynamic {
 	if apiSchemaDef == nil {
 		return types.DynamicNull()
 	}
@@ -362,7 +360,7 @@ func mapAPICompletionCapabilityToModel(apiCap *coraxclient.CapabilityRepresentat
 		// It's optional overall, but required if output_type is "schema".
 		// schemaDefAPIToMap handles nil input map by returning types.DynamicNull().
 		if schemaDefVal, ok := apiCap.Output["result"].(map[string]interface{}); ok {
-			model.SchemaDef = schemaDefAPIToMap(ctx, schemaDefVal, diags)
+			model.SchemaDef = schemaDefAPIToMap(schemaDefVal, diags)
 		} else {
 			// If "result" is not found, or not a map[string]interface{}, treat SchemaDef as null.
 			// This is correct if output_type is "text" (schema_def would be absent/null)

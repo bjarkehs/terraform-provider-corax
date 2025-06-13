@@ -87,7 +87,7 @@ func (r *ModelProviderResource) Configure(ctx context.Context, req resource.Conf
 	r.client = client
 }
 
-// Helper to map TF model to API Create struct
+// Helper to map TF model to API Create struct.
 func modelProviderResourceModelToAPICreate(ctx context.Context, plan ModelProviderResourceModel, diags *diag.Diagnostics) (*coraxclient.ModelProviderCreate, error) {
 	apiCreate := &coraxclient.ModelProviderCreate{
 		Name:         plan.Name.ValueString(),
@@ -105,7 +105,7 @@ func modelProviderResourceModelToAPICreate(ctx context.Context, plan ModelProvid
 	return apiCreate, nil
 }
 
-// Helper to map TF model to API Update struct
+// Helper to map TF model to API Update struct.
 // The API spec for ModelProviderUpdate implies all fields are required for PUT.
 // This helper will construct a full object based on the plan.
 func modelProviderResourceModelToAPIUpdate(ctx context.Context, plan ModelProviderResourceModel, diags *diag.Diagnostics) (*coraxclient.ModelProviderUpdate, error) {
@@ -126,7 +126,7 @@ func modelProviderResourceModelToAPIUpdate(ctx context.Context, plan ModelProvid
 	return apiUpdate, nil
 }
 
-// Helper to map API response to TF model
+// Helper to map API response to TF model.
 func mapAPIModelProviderToResourceModel(ctx context.Context, apiProvider *coraxclient.ModelProvider, model *ModelProviderResourceModel, diags *diag.Diagnostics) {
 	model.ID = types.StringValue(apiProvider.ID)
 	model.Name = types.StringValue(apiProvider.Name)

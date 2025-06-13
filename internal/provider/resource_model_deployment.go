@@ -106,7 +106,7 @@ func (r *ModelDeploymentResource) Configure(ctx context.Context, req resource.Co
 	r.client = client
 }
 
-// Helper to map TF model to API Create struct
+// Helper to map TF model to API Create struct.
 func modelDeploymentResourceModelToAPICreate(ctx context.Context, plan ModelDeploymentResourceModel, diags *diag.Diagnostics) (*coraxclient.ModelDeploymentCreate, error) {
 	apiCreate := &coraxclient.ModelDeploymentCreate{
 		Name:       plan.Name.ValueString(),
@@ -140,7 +140,7 @@ func modelDeploymentResourceModelToAPICreate(ctx context.Context, plan ModelDepl
 	return apiCreate, nil
 }
 
-// Helper to map TF model to API Update struct
+// Helper to map TF model to API Update struct.
 func modelDeploymentResourceModelToAPIUpdate(ctx context.Context, plan ModelDeploymentResourceModel, state ModelDeploymentResourceModel, diags *diag.Diagnostics) (*coraxclient.ModelDeploymentUpdate, bool, error) {
 	apiUpdate := &coraxclient.ModelDeploymentUpdate{}
 	updateNeeded := false
@@ -204,7 +204,7 @@ func modelDeploymentResourceModelToAPIUpdate(ctx context.Context, plan ModelDepl
 	return apiUpdate, updateNeeded, nil
 }
 
-// Helper to map API response to TF model
+// Helper to map API response to TF model.
 func mapAPIModelDeploymentToResourceModel(ctx context.Context, apiDeployment *coraxclient.ModelDeployment, model *ModelDeploymentResourceModel, diags *diag.Diagnostics) {
 	model.ID = types.StringValue(apiDeployment.ID)
 	model.Name = types.StringValue(apiDeployment.Name)

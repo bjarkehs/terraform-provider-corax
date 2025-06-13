@@ -100,6 +100,8 @@ resource "corax_api_key" "test" {
 // No local definition of `testAccProtoV6ProviderFactories` is needed in this file.
 
 // Helper to check if a string is a valid UUID.
+//
+//nolint:unused // retained for potential custom checks
 func testAccCheckUUID(v string) error {
 	if matched, _ := regexp.MatchString("^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$", v); !matched {
 		return fmt.Errorf("expected UUID, got %s", v)

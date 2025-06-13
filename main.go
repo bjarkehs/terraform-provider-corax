@@ -8,8 +8,8 @@ import (
 	"flag"
 	"log"
 
-	"terraform-provider-corax/internal/provider"
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
+	"terraform-provider-corax/internal/provider"
 )
 
 var (
