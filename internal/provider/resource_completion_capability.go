@@ -48,8 +48,6 @@ type CompletionCapabilityResourceModel struct {
 	Variables        types.Set     `tfsdk:"variables"`   // Nullable, set of strings
 	OutputType       types.String  `tfsdk:"output_type"` // "schema" or "text"
 	SchemaDef        types.Dynamic `tfsdk:"schema_def"`  // Nullable, for structured output definition
-	Owner            types.String  `tfsdk:"owner"`       // Computed
-	Type             types.String  `tfsdk:"type"`        // Computed, should always be "completion"
 }
 
 // Note: CapabilityConfigModel, BlobConfigModel, DataRetentionModel, TimedDataRetentionModel, InfiniteDataRetentionModel
@@ -118,8 +116,6 @@ func (r *CompletionCapabilityResource) Schema(ctx context.Context, req resource.
 				MarkdownDescription: "Configuration settings for the capability's behavior.",
 				Attributes:          capabilityConfigSchemaAttributes(), // Defined in chat_capability_resource.go (or move to a common place)
 			},
-			"owner": schema.StringAttribute{Computed: true, MarkdownDescription: "Owner of the capability.", PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
-			"type":  schema.StringAttribute{Computed: true, MarkdownDescription: "Type of the capability (should be 'completion').", PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 		},
 	}
 }
@@ -313,7 +309,6 @@ func mapAPICompletionCapabilityToModel(apiCap *coraxclient.CapabilityRepresentat
 	model.ID = types.StringValue(apiCap.ID)
 	model.Name = types.StringValue(apiCap.Name)
 	model.IsPublic = types.BoolValue(apiCap.IsPublic != nil && *apiCap.IsPublic)
-	model.Type = types.StringValue(apiCap.Type)
 
 	if apiCap.ModelID != nil {
 		model.ModelID = types.StringValue(*apiCap.ModelID)
@@ -450,8 +445,6 @@ func mapAPICompletionCapabilityToModel(apiCap *coraxclient.CapabilityRepresentat
 	}
 
 	model.Config = capabilityConfigAPItoModel(ctx, apiCap.Config, diags) // Common config
-
-	model.Owner = types.StringValue(apiCap.Owner)
 }
 
 func (r *CompletionCapabilityResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {

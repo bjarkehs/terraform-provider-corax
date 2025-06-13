@@ -93,13 +93,11 @@ The `config` block supports the following (refer to [`corax_chat_capability`](./
 In addition to all arguments above, the following attributes are exported:
 
 - `id` - (String) The unique identifier for the completion capability (UUID).
-- `type` - (String) The type of the capability, which will always be "completion".
 - `created_by` - (String) User who created the capability.
 - `updated_by` - (String) User who last updated the capability.
 - `created_at` - (String) Creation timestamp.
 - `updated_at` - (String) Last update timestamp.
 - `archived_at` - (String, Nullable) Archival timestamp, if applicable.
-- `owner` - (String) Owner of the capability.
 
 ## Import
 

@@ -30,7 +30,6 @@ func TestAccCompletionCapabilityResource_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "system_prompt", systemPrompt),
 					resource.TestCheckResourceAttr(resourceName, "completion_prompt", completionPrompt),
 					resource.TestCheckResourceAttr(resourceName, "output_type", "text"), // Default if not specified, or should be required? Schema says required.
-					resource.TestCheckResourceAttr(resourceName, "type", "completion"),
 					resource.TestCheckResourceAttrSet(resourceName, "id"),
 				),
 			},

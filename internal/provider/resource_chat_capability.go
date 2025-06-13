@@ -43,8 +43,6 @@ type ChatCapabilityResourceModel struct {
 	ProjectID    types.String `tfsdk:"project_id"` // Nullable
 	SystemPrompt types.String `tfsdk:"system_prompt"`
 	// CollectionIDs types.List   `tfsdk:"collection_ids"` // Omitted for now as per decision to skip collection-related features
-	Owner      types.String `tfsdk:"owner"`       // Computed
-	Type       types.String `tfsdk:"type"`        // Computed, should always be "chat"
 }
 
 func (r *ChatCapabilityResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -95,8 +93,8 @@ func (r *ChatCapabilityResource) Schema(ctx context.Context, req resource.Schema
 				MarkdownDescription: "Configuration settings for the capability's behavior.",
 				Attributes:          capabilityConfigSchemaAttributes(), // Use shared schema attributes
 			},
-			"owner":       schema.StringAttribute{Computed: true, MarkdownDescription: "Owner of the capability.", PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
-			"type":        schema.StringAttribute{Computed: true, MarkdownDescription: "Type of the capability (should be 'chat').", PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
+			// Owner and type are returned by the API but are immutable
+			// so we exclude them from the Terraform state
 		},
 	}
 }
@@ -119,7 +117,6 @@ func mapAPICapabilityToChatModel(apiCap *coraxclient.CapabilityRepresentation, m
 	model.ID = types.StringValue(apiCap.ID)
 	model.Name = types.StringValue(apiCap.Name)
 	model.IsPublic = types.BoolValue(apiCap.IsPublic != nil && *apiCap.IsPublic) // API default is false
-	model.Type = types.StringValue(apiCap.Type)
 
 	if apiCap.ModelID != nil {
 		model.ModelID = types.StringValue(*apiCap.ModelID)
@@ -147,8 +144,6 @@ func mapAPICapabilityToChatModel(apiCap *coraxclient.CapabilityRepresentation, m
 	}
 
 	model.Config = capabilityConfigAPItoModel(ctx, apiCap.Config, diags)
-
-	model.Owner = types.StringValue(apiCap.Owner)
 }
 
 func (r *ChatCapabilityResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {

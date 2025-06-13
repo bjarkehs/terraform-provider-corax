@@ -95,13 +95,11 @@ The `data_retention` block must configure exactly one of the following nested bl
 In addition to all arguments above, the following attributes are exported:
 
 - `id` - (String) The unique identifier for the chat capability (UUID).
-- `type` - (String) The type of the capability, which will always be "chat".
 - `created_by` - (String) User who created the capability.
 - `updated_by` - (String) User who last updated the capability.
 - `created_at` - (String) Creation timestamp.
 - `updated_at` - (String) Last update timestamp.
 - `archived_at` - (String, Nullable) Archival timestamp, if applicable.
-- `owner` - (String) Owner of the capability.
 
 ## Import
 
