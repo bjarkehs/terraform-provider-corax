@@ -1,3 +1,5 @@
+// Copyright (c) HashiCorp, Inc.
+
 package coraxclient
 
 // ProjectCreate represents the request body for creating a project.

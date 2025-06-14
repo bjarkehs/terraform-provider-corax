@@ -1,3 +1,5 @@
+# Copyright (c) HashiCorp, Inc.
+
 terraform {
   required_providers {
     corax = {
@@ -6,5 +8,5 @@ terraform {
   }
 }
 
-provider "corax" {  
+provider "corax" {
 }

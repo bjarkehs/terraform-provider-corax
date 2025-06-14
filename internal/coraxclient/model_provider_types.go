@@ -1,3 +1,5 @@
+// Copyright (c) HashiCorp, Inc.
+
 package coraxclient
 
 // ModelProvider maps to components.schemas.ModelProvider.
