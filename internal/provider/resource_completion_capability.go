@@ -1,3 +1,5 @@
+// Copyright (c) HashiCorp, Inc.
+
 //nolint:staticcheck // using json.Marshal on framework types for normalization
 package provider
 

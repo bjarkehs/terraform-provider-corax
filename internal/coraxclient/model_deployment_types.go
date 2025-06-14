@@ -1,3 +1,5 @@
+// Copyright (c) HashiCorp, Inc.
+
 package coraxclient
 
 // ModelDeployment maps to components.schemas.ModelDeployment.

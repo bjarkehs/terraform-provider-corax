@@ -1,3 +1,5 @@
+// Copyright (c) HashiCorp, Inc.
+
 package coraxclient
 
 // ApiKeyCreate represents the request body for creating an API key.
