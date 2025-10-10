@@ -29,6 +29,7 @@ Manages a Corax Completion Capability. Completion capabilities define configurat
 - `model_id` (String) The UUID of the model deployment to use for this capability. If not provided, a default model for 'completion' type may be used by the API.
 - `project_id` (String) The UUID of the project this capability belongs to.
 - `schema_def` (Dynamic) Defines the structure of the output when `output_type` is 'schema'. This can be an HCL map or a JSON string. Required if `output_type` is 'schema'.
+- `semantic_id` (String) A semantic identifier for the completion capability that can be used for referencing.
 - `variables` (Set of String) A set of variable names (strings) that can be interpolated into the `completion_prompt`. Order is not significant.
 
 ### Read-Only

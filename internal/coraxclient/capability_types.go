@@ -63,6 +63,7 @@ type CapabilityRepresentation struct {
 	Config        *CapabilityConfig      `json:"config"` // API returns the resolved config
 	ProjectID     *string                `json:"project_id"`
 	ID            string                 `json:"id"`
+	SemanticID    string                 `json:"semantic_id"`
 	CreatedBy     string                 `json:"created_by"`
 	UpdatedBy     string                 `json:"updated_by"` // API shows this as non-nullable, but might be null in practice
 	CreatedAt     string                 `json:"created_at"`
@@ -103,6 +104,7 @@ type CompletionCapabilityCreate struct {
 	Name             string                 `json:"name"`
 	IsPublic         *bool                  `json:"is_public,omitempty"`
 	Type             string                 `json:"type"` // Should always be "completion"
+	SemanticID       *string                `json:"semantic_id,omitempty"`
 	ModelID          *string                `json:"model_id,omitempty"`
 	Config           *CapabilityConfig      `json:"config,omitempty"`
 	ProjectID        *string                `json:"project_id,omitempty"`
@@ -118,6 +120,7 @@ type CompletionCapabilityUpdate struct {
 	Name             *string                `json:"name,omitempty"`
 	IsPublic         *bool                  `json:"is_public,omitempty"`
 	Type             *string                `json:"type,omitempty"` // Should always be "completion" if sent
+	SemanticID       *string                `json:"semantic_id,omitempty"`
 	ModelID          *string                `json:"model_id,omitempty"`
 	Config           *CapabilityConfig      `json:"config,omitempty"`
 	ProjectID        *string                `json:"project_id,omitempty"`
