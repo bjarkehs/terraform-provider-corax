@@ -42,6 +42,7 @@ type CompletionCapabilityResource struct {
 type CompletionCapabilityResourceModel struct {
 	ID               types.String  `tfsdk:"id"`
 	Name             types.String  `tfsdk:"name"`
+	SemanticID       types.String  `tfsdk:"semantic_id"` // Optional
 	IsPublic         types.Bool    `tfsdk:"is_public"`
 	ModelID          types.String  `tfsdk:"model_id"`      // Nullable
 	Config           types.Object  `tfsdk:"config"`        // Nullable, uses CapabilityConfigModel from chat_capability.go
@@ -75,6 +76,10 @@ func (r *CompletionCapabilityResource) Schema(ctx context.Context, req resource.
 				Required:            true,
 				MarkdownDescription: "A user-defined name for the completion capability.",
 				Validators:          []validator.String{stringvalidator.LengthAtLeast(1)},
+			},
+			"semantic_id": schema.StringAttribute{
+				Optional:            true,
+				MarkdownDescription: "A semantic identifier for the completion capability that can be used for referencing.",
 			},
 			"is_public": schema.BoolAttribute{
 				Optional:            true,
@@ -311,6 +316,7 @@ func schemaDefAPIToMap(apiSchemaDef map[string]interface{}, diags *diag.Diagnost
 
 func mapAPICompletionCapabilityToModel(apiCap *coraxclient.CapabilityRepresentation, model *CompletionCapabilityResourceModel, diags *diag.Diagnostics, ctx context.Context) {
 	model.ID = types.StringValue(apiCap.ID)
+	model.SemanticID = types.StringValue(apiCap.SemanticID)
 	model.Name = types.StringValue(apiCap.Name)
 	model.IsPublic = types.BoolValue(apiCap.IsPublic != nil && *apiCap.IsPublic)
 	model.Type = types.StringValue(apiCap.Type)
@@ -487,6 +493,10 @@ func (r *CompletionCapabilityResource) Create(ctx context.Context, req resource.
 		isPublic := plan.IsPublic.ValueBool()
 		apiPayload.IsPublic = &isPublic
 	}
+	if !plan.SemanticID.IsNull() && !plan.SemanticID.IsUnknown() {
+		semanticID := plan.SemanticID.ValueString()
+		apiPayload.SemanticID = &semanticID
+	}
 	if !plan.ModelID.IsNull() && !plan.ModelID.IsUnknown() {
 		modelID := plan.ModelID.ValueString()
 		apiPayload.ModelID = &modelID
@@ -604,6 +614,14 @@ func (r *CompletionCapabilityResource) Update(ctx context.Context, req resource.
 	} else {
 		defaultIsPublic := false // As per schema default
 		updatePayload.IsPublic = &defaultIsPublic
+	}
+
+	// SemanticID
+	if !plan.SemanticID.IsNull() && !plan.SemanticID.IsUnknown() {
+		semanticIDVal := plan.SemanticID.ValueString()
+		updatePayload.SemanticID = &semanticIDVal
+	} else {
+		updatePayload.SemanticID = nil
 	}
 
 	// ModelID
