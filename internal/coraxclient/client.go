@@ -362,6 +362,7 @@ func (c *Client) CreateCapability(ctx context.Context, capabilityData interface{
 	createdCapability.UpdatedAt = getString(rawResponseData, "updated_at")
 	createdCapability.ArchivedAt = getStringPtr(rawResponseData, "archived_at")
 	createdCapability.Owner = getString(rawResponseData, "owner")
+	createdCapability.SemanticID = getString(rawResponseData, "semantic_id")
 
 	// Populate Config
 	if configMapVal, ok := rawResponseData["config"].(map[string]interface{}); ok && configMapVal != nil {
