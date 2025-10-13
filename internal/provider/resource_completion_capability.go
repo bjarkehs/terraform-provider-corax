@@ -510,7 +510,8 @@ func (r *CompletionCapabilityResource) Create(ctx context.Context, req resource.
 			return
 		}
 	}
-	if plan.OutputType.ValueString() == "schema" {
+	outputType := plan.OutputType.ValueString()
+	if outputType == "schema" {
 		if plan.SchemaDef.IsNull() || plan.SchemaDef.IsUnknown() {
 			resp.Diagnostics.AddError("Validation Error", "schema_def is required when output_type is 'schema'")
 			return
@@ -519,11 +520,14 @@ func (r *CompletionCapabilityResource) Create(ctx context.Context, req resource.
 		if resp.Diagnostics.HasError() {
 			return
 		}
-	} else if plan.OutputType.ValueString() == "text" {
+	} else if outputType == "text" {
 		if !plan.SchemaDef.IsNull() && !plan.SchemaDef.IsUnknown() {
 			resp.Diagnostics.AddError("Validation Error", "schema_def must not be set when output_type is 'text'")
 			return
 		}
+	} else {
+		resp.Diagnostics.AddError("Validation Error", fmt.Sprintf("unsupported output_type '%s', must be either 'text' or 'schema'", outputType))
+		return
 	}
 
 	// Common config mapping (reuse from chat capability if moved to common, or define here)
@@ -675,7 +679,8 @@ func (r *CompletionCapabilityResource) Update(ctx context.Context, req resource.
 		}
 		updatePayload.SchemaDef = nil
 	} else {
-		updatePayload.SchemaDef = nil
+		resp.Diagnostics.AddError("Validation Error", fmt.Sprintf("unsupported output_type '%s', must be either 'text' or 'schema'", outputTypeValue))
+		return
 	}
 
 	// Config
