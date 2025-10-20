@@ -115,11 +115,10 @@ func (r *CompletionCapabilityResource) Schema(ctx context.Context, req resource.
 			},
 			"schema_def": schema.DynamicAttribute{
 				Optional:            true,
-				MarkdownDescription: "Defines the structure of the output when `output_type` is 'schema'. This can be an HCL map or a JSON string. Required if `output_type` is 'schema'.",
+				MarkdownDescription: "Defines the structure of the output when `output_type` is 'schema'. This can be an HCL map or a JSON string. Required if `output_type` is 'schema', must be null or omitted if `output_type` is 'text'.",
 				PlanModifiers: []planmodifier.Dynamic{
 					normalizeSchemaDef(),
 				},
-				// TODO: Add validation: required if output_type is "schema". This can be done with a CustomType or PlanModifier, or in Create/Update.
 			},
 			"config": schema.SingleNestedAttribute{ // Reusing the same config structure as chat
 				Optional:            true,
@@ -511,15 +510,24 @@ func (r *CompletionCapabilityResource) Create(ctx context.Context, req resource.
 			return
 		}
 	}
-	if plan.OutputType.ValueString() == "schema" {
+	outputType := plan.OutputType.ValueString()
+	if outputType == "schema" {
 		if plan.SchemaDef.IsNull() || plan.SchemaDef.IsUnknown() {
 			resp.Diagnostics.AddError("Validation Error", "schema_def is required when output_type is 'schema'")
 			return
 		}
-		apiPayload.SchemaDef = schemaDefMapToAPI(ctx, plan.SchemaDef, &resp.Diagnostics) // plan.SchemaDef is now types.Dynamic
+		apiPayload.SchemaDef = schemaDefMapToAPI(ctx, plan.SchemaDef, &resp.Diagnostics)
 		if resp.Diagnostics.HasError() {
 			return
 		}
+	} else if outputType == "text" {
+		if !plan.SchemaDef.IsNull() && !plan.SchemaDef.IsUnknown() {
+			resp.Diagnostics.AddError("Validation Error", "schema_def must not be set when output_type is 'text'")
+			return
+		}
+	} else {
+		resp.Diagnostics.AddError("Validation Error", fmt.Sprintf("unsupported output_type '%s', must be either 'text' or 'schema'", outputType))
+		return
 	}
 
 	// Common config mapping (reuse from chat capability if moved to common, or define here)
@@ -655,13 +663,24 @@ func (r *CompletionCapabilityResource) Update(ctx context.Context, req resource.
 	}
 
 	// SchemaDef
-	if !plan.SchemaDef.IsNull() && !plan.SchemaDef.IsUnknown() {
+	if outputTypeValue == "schema" {
+		if plan.SchemaDef.IsNull() || plan.SchemaDef.IsUnknown() {
+			resp.Diagnostics.AddError("Validation Error", "schema_def is required when output_type is 'schema'")
+			return
+		}
 		updatePayload.SchemaDef = schemaDefMapToAPI(ctx, plan.SchemaDef, &resp.Diagnostics)
 		if resp.Diagnostics.HasError() {
 			return
 		}
-	} else {
+	} else if outputTypeValue == "text" {
+		if !plan.SchemaDef.IsNull() && !plan.SchemaDef.IsUnknown() {
+			resp.Diagnostics.AddError("Validation Error", "schema_def must not be set when output_type is 'text'")
+			return
+		}
 		updatePayload.SchemaDef = nil
+	} else {
+		resp.Diagnostics.AddError("Validation Error", fmt.Sprintf("unsupported output_type '%s', must be either 'text' or 'schema'", outputTypeValue))
+		return
 	}
 
 	// Config
