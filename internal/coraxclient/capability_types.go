@@ -6,10 +6,11 @@ package coraxclient
 
 // CapabilityConfig maps to components.schemas.CapabilityConfig.
 type CapabilityConfig struct {
-	Temperature    *float64       `json:"temperature,omitempty"`
-	BlobConfig     *BlobConfig    `json:"blob_config,omitempty"`
-	DataRetention  *DataRetention `json:"data_retention,omitempty"` // Polymorphic
-	ContentTracing *bool          `json:"content_tracing,omitempty"`
+	Temperature      *float64               `json:"temperature,omitempty"`
+	BlobConfig       *BlobConfig            `json:"blob_config,omitempty"`
+	DataRetention    *DataRetention         `json:"data_retention,omitempty"` // Polymorphic
+	ContentTracing   *bool                  `json:"content_tracing,omitempty"`
+	CustomParameters map[string]interface{} `json:"custom_parameters,omitempty"`
 }
 
 // BlobConfig maps to components.schemas.BlobConfig.
