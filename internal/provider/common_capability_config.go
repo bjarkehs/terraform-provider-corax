@@ -4,6 +4,8 @@ package provider
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator" // Added
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 
@@ -20,10 +22,11 @@ import (
 
 // CapabilityConfigModel maps to components.schemas.CapabilityConfig.
 type CapabilityConfigModel struct {
-	Temperature    types.Float64 `tfsdk:"temperature"`     // Nullable
-	BlobConfig     types.Object  `tfsdk:"blob_config"`     // Nullable
-	DataRetention  types.Object  `tfsdk:"data_retention"`  // Polymorphic: TimedDataRetention or InfiniteDataRetention
-	ContentTracing types.Bool    `tfsdk:"content_tracing"` // Default true
+	Temperature      types.Float64 `tfsdk:"temperature"`       // Nullable
+	BlobConfig       types.Object  `tfsdk:"blob_config"`       // Nullable
+	DataRetention    types.Object  `tfsdk:"data_retention"`    // Polymorphic: TimedDataRetention or InfiniteDataRetention
+	ContentTracing   types.Bool    `tfsdk:"content_tracing"`   // Default true
+	CustomParameters types.Dynamic `tfsdk:"custom_parameters"` // Nullable, flexible key-value map
 }
 
 // BlobConfigModel maps to components.schemas.BlobConfig.
@@ -106,10 +109,11 @@ func (v dataRetentionValidator) ValidateObject(ctx context.Context, req validato
 
 func capabilityConfigAttributeTypes() map[string]attr.Type {
 	return map[string]attr.Type{
-		"temperature":     types.Float64Type,
-		"blob_config":     types.ObjectType{AttrTypes: blobConfigAttributeTypes()},
-		"data_retention":  types.ObjectType{AttrTypes: dataRetentionAttributeTypes()},
-		"content_tracing": types.BoolType,
+		"temperature":       types.Float64Type,
+		"blob_config":       types.ObjectType{AttrTypes: blobConfigAttributeTypes()},
+		"data_retention":    types.ObjectType{AttrTypes: dataRetentionAttributeTypes()},
+		"content_tracing":   types.BoolType,
+		"custom_parameters": types.DynamicType,
 	}
 }
 
@@ -185,6 +189,10 @@ func capabilityConfigSchemaAttributes() map[string]schema.Attribute {
 			Optional:            true,
 			Computed:            true, // API default is true
 			MarkdownDescription: "Whether content (prompts, completion data, variables) should be recorded in observability systems. Automatically set to false by the API for timed data retention.",
+		},
+		"custom_parameters": schema.DynamicAttribute{
+			Optional:            true,
+			MarkdownDescription: "Custom parameters as a map of key-value pairs. Values can be strings, numbers, or booleans.",
 		},
 	}
 }
@@ -286,6 +294,17 @@ func capabilityConfigModelToAPI(ctx context.Context, modelConfig types.Object, d
 		}
 	}
 
+	if !cfgModel.CustomParameters.IsNull() && !cfgModel.CustomParameters.IsUnknown() {
+		customParamsMap := customParametersToAPI(ctx, cfgModel.CustomParameters, diags)
+		if diags.HasError() {
+			return nil
+		}
+		if customParamsMap != nil {
+			apiConfig.CustomParameters = customParamsMap
+			hasChanges = true
+		}
+	}
+
 	if !hasChanges {
 		return nil
 	} // If no actual values were set in config, return nil to omit it from API payload
@@ -361,7 +380,75 @@ func capabilityConfigAPItoModel(ctx context.Context, apiConfig *coraxclient.Capa
 		attrs["data_retention"] = types.ObjectNull(dataRetentionAttributeTypes())
 	}
 
+	attrs["custom_parameters"] = customParametersAPIToTerraform(apiConfig.CustomParameters, diags)
+
 	objVal, objDiags := types.ObjectValue(capabilityConfigAttributeTypes(), attrs)
 	diags.Append(objDiags...)
 	return objVal
+}
+
+// --- Helper functions for CustomParameters conversion ---
+
+// customParametersToAPI converts a types.Dynamic value (representing a map)
+// to a map[string]interface{} suitable for the API.
+func customParametersToAPI(ctx context.Context, customParams types.Dynamic, diags *diag.Diagnostics) map[string]interface{} {
+	if customParams.IsNull() || customParams.IsUnknown() {
+		return nil
+	}
+
+	underlyingVal := customParams.UnderlyingValue()
+	var goMap map[string]interface{}
+
+	switch val := underlyingVal.(type) {
+	case types.String:
+		if val.IsNull() || val.IsUnknown() {
+			return nil
+		}
+		err := json.Unmarshal([]byte(val.ValueString()), &goMap)
+		if err != nil {
+			diags.AddError("CustomParameters JSON String Error", fmt.Sprintf("custom_parameters was provided as a string, but it's not valid JSON for a map: %s. Content: %s", err.Error(), val.ValueString()))
+			return nil
+		}
+		return goMap
+	case types.Object:
+		convDiags := val.As(ctx, &goMap, basetypes.ObjectAsOptions{UnhandledNullAsEmpty: true, UnhandledUnknownAsEmpty: true})
+		diags.Append(convDiags...)
+		if convDiags.HasError() {
+			return nil
+		}
+		return goMap
+	case types.Map:
+		if val.IsNull() || val.IsUnknown() {
+			return nil
+		}
+		elemDiags := val.ElementsAs(ctx, &goMap, false)
+		diags.Append(elemDiags...)
+		if elemDiags.HasError() {
+			return nil
+		}
+		return goMap
+	default:
+		diags.AddError("CustomParameters Type Error",
+			fmt.Sprintf("custom_parameters has an unsupported underlying type: %T. "+
+				"It should be an HCL map/object or a valid JSON string representing such a structure.", underlyingVal))
+		return nil
+	}
+}
+
+// customParametersAPIToTerraform converts a map[string]interface{} from the API
+// to a types.Dynamic value.
+func customParametersAPIToTerraform(apiCustomParams map[string]interface{}, diags *diag.Diagnostics) types.Dynamic {
+	if apiCustomParams == nil {
+		return types.DynamicNull()
+	}
+
+	jsonBytes, err := json.Marshal(apiCustomParams)
+	if err != nil {
+		diags.AddError("CustomParameters API Conversion Error", fmt.Sprintf("Failed to marshal custom_parameters from API to JSON: %s", err))
+		return types.DynamicNull()
+	}
+
+	strVal := types.StringValue(string(jsonBytes))
+	dynVal := types.DynamicValue(strVal)
+	return dynVal
 }
