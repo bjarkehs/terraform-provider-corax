@@ -40,6 +40,7 @@ Optional:
 
 - `blob_config` (Attributes) Configuration for handling file uploads (blobs) if the capability supports it. (see [below for nested schema](#nestedatt--config--blob_config))
 - `content_tracing` (Boolean) Whether content (prompts, completion data, variables) should be recorded in observability systems. Automatically set to false by the API for timed data retention.
+- `custom_parameters` (Dynamic) Custom parameters as a map of key-value pairs. Values can be strings, numbers, or booleans.
 - `data_retention` (Attributes) Defines how long execution input and output data should be kept. Configure with 'type' and optionally 'hours'. (see [below for nested schema](#nestedatt--config--data_retention))
 - `temperature` (Number) Controls randomness in response generation (0.0 to 1.0). Higher values make output more random.
 

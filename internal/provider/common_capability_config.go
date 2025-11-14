@@ -421,14 +421,9 @@ func customParametersToAPI(ctx context.Context, customParams types.Dynamic, diag
 		if val.IsNull() || val.IsUnknown() {
 			return nil
 		}
-		jsonBytes, err := json.Marshal(val)
-		if err != nil {
-			diags.AddError("CustomParameters Map Marshal Error", fmt.Sprintf("Failed to marshal HCL map for custom_parameters to JSON: %s", err.Error()))
-			return nil
-		}
-		err = json.Unmarshal(jsonBytes, &goMap)
-		if err != nil {
-			diags.AddError("CustomParameters Map Unmarshal Error", fmt.Sprintf("Failed to unmarshal intermediate JSON for custom_parameters map: %s", err.Error()))
+		elemDiags := val.ElementsAs(ctx, &goMap, false)
+		diags.Append(elemDiags...)
+		if elemDiags.HasError() {
 			return nil
 		}
 		return goMap
