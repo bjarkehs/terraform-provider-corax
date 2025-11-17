@@ -1,3 +1,5 @@
+// Copyright (c) Trifork
+
 package provider
 
 import (
