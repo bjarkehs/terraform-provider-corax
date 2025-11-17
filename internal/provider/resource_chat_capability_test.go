@@ -125,9 +125,8 @@ resource "corax_chat_capability" "test_with_config" {
     temperature     = 0.7
     content_tracing = true
     data_retention {
-      timed {
-        hours = 24
-      }
+      type  = "timed"
+      hours = 24
     }
     blob_config {
       max_file_size_mb = 10
@@ -152,9 +151,7 @@ resource "corax_chat_capability" "test_with_config" {
     temperature     = 0.8
     content_tracing = false // Updated
     data_retention {
-      infinite { // Changed from timed to infinite
-        enabled = true
-      }
+      type = "infinite" // Changed from timed to infinite
     }
     // blob_config removed, should revert to API defaults or be null if API allows removal
   }

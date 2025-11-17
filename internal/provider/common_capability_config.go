@@ -411,20 +411,39 @@ func customParametersToAPI(ctx context.Context, customParams types.Dynamic, diag
 		}
 		return goMap
 	case types.Object:
-		convDiags := val.As(ctx, &goMap, basetypes.ObjectAsOptions{UnhandledNullAsEmpty: true, UnhandledUnknownAsEmpty: true})
-		diags.Append(convDiags...)
-		if convDiags.HasError() {
+		if val.IsNull() || val.IsUnknown() {
 			return nil
+		}
+
+		// Extract attributes from the Object and convert each to interface{}
+		goMap = make(map[string]interface{})
+		attrs := val.Attributes()
+		for key, attrVal := range attrs {
+			convertedVal, err := convertAttrValueToInterface(attrVal)
+			if err != nil {
+				diags.AddError("CustomParameters Object Conversion Error",
+					fmt.Sprintf("Failed to convert attribute %q: %s", key, err.Error()))
+				return nil
+			}
+			goMap[key] = convertedVal
 		}
 		return goMap
 	case types.Map:
 		if val.IsNull() || val.IsUnknown() {
 			return nil
 		}
-		elemDiags := val.ElementsAs(ctx, &goMap, false)
-		diags.Append(elemDiags...)
-		if elemDiags.HasError() {
-			return nil
+
+		// Extract elements from the Map and convert each to interface{}
+		goMap = make(map[string]interface{})
+		elements := val.Elements()
+		for key, elemVal := range elements {
+			convertedVal, err := convertAttrValueToInterface(elemVal)
+			if err != nil {
+				diags.AddError("CustomParameters Map Conversion Error",
+					fmt.Sprintf("Failed to convert element %q: %s", key, err.Error()))
+				return nil
+			}
+			goMap[key] = convertedVal
 		}
 		return goMap
 	default:
@@ -451,4 +470,79 @@ func customParametersAPIToTerraform(apiCustomParams map[string]interface{}, diag
 	strVal := types.StringValue(string(jsonBytes))
 	dynVal := types.DynamicValue(strVal)
 	return dynVal
+}
+
+// convertAttrValueToInterface converts a Terraform attr.Value to a Go interface{} value.
+// This handles the common Terraform types (String, Bool, Int64, Float64, List, Map, Object).
+func convertAttrValueToInterface(val attr.Value) (interface{}, error) {
+	if val == nil {
+		return nil, nil
+	}
+
+	switch v := val.(type) {
+	case types.String:
+		if v.IsNull() || v.IsUnknown() {
+			return nil, nil
+		}
+		return v.ValueString(), nil
+	case types.Bool:
+		if v.IsNull() || v.IsUnknown() {
+			return nil, nil
+		}
+		return v.ValueBool(), nil
+	case types.Int64:
+		if v.IsNull() || v.IsUnknown() {
+			return nil, nil
+		}
+		return v.ValueInt64(), nil
+	case types.Float64:
+		if v.IsNull() || v.IsUnknown() {
+			return nil, nil
+		}
+		return v.ValueFloat64(), nil
+	case types.List:
+		if v.IsNull() || v.IsUnknown() {
+			return nil, nil
+		}
+		elements := v.Elements()
+		result := make([]interface{}, 0, len(elements))
+		for _, elem := range elements {
+			converted, err := convertAttrValueToInterface(elem)
+			if err != nil {
+				return nil, err
+			}
+			result = append(result, converted)
+		}
+		return result, nil
+	case types.Map:
+		if v.IsNull() || v.IsUnknown() {
+			return nil, nil
+		}
+		elements := v.Elements()
+		result := make(map[string]interface{})
+		for key, elem := range elements {
+			converted, err := convertAttrValueToInterface(elem)
+			if err != nil {
+				return nil, err
+			}
+			result[key] = converted
+		}
+		return result, nil
+	case types.Object:
+		if v.IsNull() || v.IsUnknown() {
+			return nil, nil
+		}
+		attrs := v.Attributes()
+		result := make(map[string]interface{})
+		for key, attrVal := range attrs {
+			converted, err := convertAttrValueToInterface(attrVal)
+			if err != nil {
+				return nil, err
+			}
+			result[key] = converted
+		}
+		return result, nil
+	default:
+		return nil, fmt.Errorf("unsupported attribute type: %T", val)
+	}
 }
