@@ -278,13 +278,14 @@ func TestCustomParametersAPIToTerraform(t *testing.T) {
 					t.Error("expected non-null result for empty map")
 				}
 				underlyingVal := result.UnderlyingValue()
-				strVal, ok := underlyingVal.(types.String)
+				objVal, ok := underlyingVal.(types.Object)
 				if !ok {
-					t.Errorf("expected underlying value to be types.String, got %T", underlyingVal)
+					t.Errorf("expected underlying value to be types.Object, got %T", underlyingVal)
 					return
 				}
-				if strVal.ValueString() != "{}" {
-					t.Errorf("expected '{}', got %q", strVal.ValueString())
+				attrs := objVal.Attributes()
+				if len(attrs) != 0 {
+					t.Errorf("expected empty object, got %d attributes", len(attrs))
 				}
 			},
 		},
@@ -300,14 +301,24 @@ func TestCustomParametersAPIToTerraform(t *testing.T) {
 					t.Error("expected non-null result")
 				}
 				underlyingVal := result.UnderlyingValue()
-				strVal, ok := underlyingVal.(types.String)
+				objVal, ok := underlyingVal.(types.Object)
 				if !ok {
-					t.Errorf("expected underlying value to be types.String, got %T", underlyingVal)
+					t.Errorf("expected underlying value to be types.Object, got %T", underlyingVal)
 					return
 				}
-				jsonStr := strVal.ValueString()
-				if !contains(jsonStr, `"key1":"value1"`) || !contains(jsonStr, `"key2":"value2"`) {
-					t.Errorf("expected JSON to contain key-value pairs, got %q", jsonStr)
+				attrs := objVal.Attributes()
+				if len(attrs) != 2 {
+					t.Errorf("expected 2 attributes, got %d", len(attrs))
+				}
+
+				key1Val, ok := attrs["key1"].(types.String)
+				if !ok || key1Val.ValueString() != "value1" {
+					t.Errorf("expected key1=value1")
+				}
+
+				key2Val, ok := attrs["key2"].(types.String)
+				if !ok || key2Val.ValueString() != "value2" {
+					t.Errorf("expected key2=value2")
 				}
 			},
 		},
@@ -325,20 +336,34 @@ func TestCustomParametersAPIToTerraform(t *testing.T) {
 					t.Error("expected non-null result")
 				}
 				underlyingVal := result.UnderlyingValue()
-				strVal, ok := underlyingVal.(types.String)
+				objVal, ok := underlyingVal.(types.Object)
 				if !ok {
-					t.Errorf("expected underlying value to be types.String, got %T", underlyingVal)
+					t.Errorf("expected underlying value to be types.Object, got %T", underlyingVal)
 					return
 				}
-				jsonStr := strVal.ValueString()
-				if !contains(jsonStr, `"stringKey":"test"`) {
-					t.Errorf("expected stringKey in JSON, got %q", jsonStr)
+				attrs := objVal.Attributes()
+				if len(attrs) != 4 {
+					t.Errorf("expected 4 attributes, got %d", len(attrs))
 				}
-				if !contains(jsonStr, `"boolKey":true`) {
-					t.Errorf("expected boolKey in JSON, got %q", jsonStr)
+
+				stringVal, ok := attrs["stringKey"].(types.String)
+				if !ok || stringVal.ValueString() != "test" {
+					t.Errorf("expected stringKey=test")
 				}
-				if !contains(jsonStr, `"intKey":42`) {
-					t.Errorf("expected intKey in JSON, got %q", jsonStr)
+
+				boolVal, ok := attrs["boolKey"].(types.Bool)
+				if !ok || !boolVal.ValueBool() {
+					t.Errorf("expected boolKey=true")
+				}
+
+				intVal, ok := attrs["intKey"].(types.Int64)
+				if !ok || intVal.ValueInt64() != 42 {
+					t.Errorf("expected intKey=42")
+				}
+
+				floatVal, ok := attrs["floatKey"].(types.Float64)
+				if !ok || floatVal.ValueFloat64() != 3.14 {
+					t.Errorf("expected floatKey=3.14")
 				}
 			},
 		},
@@ -356,17 +381,88 @@ func TestCustomParametersAPIToTerraform(t *testing.T) {
 					t.Error("expected non-null result")
 				}
 				underlyingVal := result.UnderlyingValue()
-				strVal, ok := underlyingVal.(types.String)
+				objVal, ok := underlyingVal.(types.Object)
 				if !ok {
-					t.Errorf("expected underlying value to be types.String, got %T", underlyingVal)
+					t.Errorf("expected underlying value to be types.Object, got %T", underlyingVal)
 					return
 				}
-				jsonStr := strVal.ValueString()
-				if !contains(jsonStr, `"nested"`) || !contains(jsonStr, `"innerKey"`) {
-					t.Errorf("expected nested structure in JSON, got %q", jsonStr)
+				attrs := objVal.Attributes()
+				if len(attrs) != 2 {
+					t.Errorf("expected 2 attributes, got %d", len(attrs))
 				}
-				if !contains(jsonStr, `"array"`) {
-					t.Errorf("expected array in JSON, got %q", jsonStr)
+
+				nestedVal, ok := attrs["nested"].(types.Object)
+				if !ok {
+					t.Errorf("expected nested to be types.Object, got %T", attrs["nested"])
+					return
+				}
+				nestedAttrs := nestedVal.Attributes()
+				innerKeyVal, ok := nestedAttrs["innerKey"].(types.String)
+				if !ok || innerKeyVal.ValueString() != "innerValue" {
+					t.Errorf("expected nested.innerKey=innerValue")
+				}
+
+				arrayVal, ok := attrs["array"].(types.List)
+				if !ok {
+					t.Errorf("expected array to be types.List, got %T", attrs["array"])
+					return
+				}
+				if len(arrayVal.Elements()) != 2 {
+					t.Errorf("expected array to have 2 elements, got %d", len(arrayVal.Elements()))
+				}
+			},
+		},
+		{
+			name: "should return Object not String (reproduces Terraform error)",
+			input: map[string]interface{}{
+				"reasoning": "minimal",
+				"verbosity": "low",
+			},
+			expectNull: false,
+			validateValue: func(t *testing.T, result types.Dynamic) {
+				if result.IsNull() {
+					t.Error("expected non-null result")
+				}
+				underlyingVal := result.UnderlyingValue()
+
+				// The underlying value should be types.Object, NOT types.String
+				// If it's types.String, Terraform will see it as a string type and error with:
+				// "attribute custom_parameters: object required, but have string"
+				objVal, ok := underlyingVal.(types.Object)
+				if !ok {
+					t.Errorf("expected underlying value to be types.Object, got %T (this is the bug!)", underlyingVal)
+					return
+				}
+
+				// Verify the object has the correct attributes
+				attrs := objVal.Attributes()
+				if len(attrs) != 2 {
+					t.Errorf("expected 2 attributes, got %d", len(attrs))
+				}
+
+				// Check that the values are correct
+				reasoningVal, ok := attrs["reasoning"]
+				if !ok {
+					t.Error("expected 'reasoning' attribute")
+				} else {
+					reasoningStr, ok := reasoningVal.(types.String)
+					if !ok {
+						t.Errorf("expected reasoning to be types.String, got %T", reasoningVal)
+					} else if reasoningStr.ValueString() != "minimal" {
+						t.Errorf("expected reasoning='minimal', got %q", reasoningStr.ValueString())
+					}
+				}
+
+				verbosityVal, ok := attrs["verbosity"]
+				if !ok {
+					t.Error("expected 'verbosity' attribute")
+				} else {
+					verbosityStr, ok := verbosityVal.(types.String)
+					if !ok {
+						t.Errorf("expected verbosity to be types.String, got %T", verbosityVal)
+					} else if verbosityStr.ValueString() != "low" {
+						t.Errorf("expected verbosity='low', got %q", verbosityStr.ValueString())
+					}
 				}
 			},
 		},
