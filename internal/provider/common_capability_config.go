@@ -295,7 +295,7 @@ func capabilityConfigModelToAPI(ctx context.Context, modelConfig types.Object, d
 	}
 
 	if !cfgModel.CustomParameters.IsNull() && !cfgModel.CustomParameters.IsUnknown() {
-		customParamsMap := customParametersToAPI(ctx, cfgModel.CustomParameters, diags)
+		customParamsMap := customParametersToAPI(cfgModel.CustomParameters, diags)
 		if diags.HasError() {
 			return nil
 		}
@@ -391,7 +391,7 @@ func capabilityConfigAPItoModel(ctx context.Context, apiConfig *coraxclient.Capa
 
 // customParametersToAPI converts a types.Dynamic value (representing a map)
 // to a map[string]interface{} suitable for the API.
-func customParametersToAPI(ctx context.Context, customParams types.Dynamic, diags *diag.Diagnostics) map[string]interface{} {
+func customParametersToAPI(customParams types.Dynamic, diags *diag.Diagnostics) map[string]interface{} {
 	if customParams.IsNull() || customParams.IsUnknown() {
 		return nil
 	}

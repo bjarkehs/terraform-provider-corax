@@ -1,7 +1,6 @@
 package provider
 
 import (
-	"context"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -11,8 +10,6 @@ import (
 )
 
 func TestCustomParametersToAPI(t *testing.T) {
-	ctx := context.Background()
-
 	tests := []struct {
 		name          string
 		input         types.Dynamic
@@ -75,15 +72,15 @@ func TestCustomParametersToAPI(t *testing.T) {
 			expectError: false,
 		},
 		{
-			name:        "empty string value",
-			input:       types.DynamicValue(types.StringValue("")),
-			expectedMap: nil,
-			expectError: true,
+			name:          "empty string value",
+			input:         types.DynamicValue(types.StringValue("")),
+			expectedMap:   nil,
+			expectError:   true,
 			errorContains: "custom_parameters was provided as a string, but it's not valid JSON",
 		},
 		{
-			name:  "empty JSON string",
-			input: types.DynamicValue(types.StringValue(`{}`)),
+			name:        "empty JSON string",
+			input:       types.DynamicValue(types.StringValue(`{}`)),
 			expectedMap: map[string]interface{}{},
 			expectError: false,
 		},
@@ -226,7 +223,7 @@ func TestCustomParametersToAPI(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var diags diag.Diagnostics
-			result := customParametersToAPI(ctx, tt.input, &diags)
+			result := customParametersToAPI(tt.input, &diags)
 
 			if tt.expectError {
 				if !diags.HasError() {
