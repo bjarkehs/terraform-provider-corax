@@ -455,20 +455,21 @@ func customParametersToAPI(customParams types.Dynamic, diags *diag.Diagnostics) 
 }
 
 // customParametersAPIToTerraform converts a map[string]interface{} from the API
-// to a types.Dynamic value.
+// to a types.Dynamic value containing a types.Object.
 func customParametersAPIToTerraform(apiCustomParams map[string]interface{}, diags *diag.Diagnostics) types.Dynamic {
 	if apiCustomParams == nil {
 		return types.DynamicNull()
 	}
 
-	jsonBytes, err := json.Marshal(apiCustomParams)
-	if err != nil {
-		diags.AddError("CustomParameters API Conversion Error", fmt.Sprintf("Failed to marshal custom_parameters from API to JSON: %s", err))
+	// Convert the map to a types.Object using our helper function
+	objVal, convertDiags := convertInterfaceToAttrValue(apiCustomParams)
+	diags.Append(*convertDiags...)
+	if diags.HasError() {
 		return types.DynamicNull()
 	}
 
-	strVal := types.StringValue(string(jsonBytes))
-	dynVal := types.DynamicValue(strVal)
+	// Wrap the Object in a Dynamic value
+	dynVal := types.DynamicValue(objVal)
 	return dynVal
 }
 
@@ -544,5 +545,61 @@ func convertAttrValueToInterface(val attr.Value) (interface{}, error) {
 		return result, nil
 	default:
 		return nil, fmt.Errorf("unsupported attribute type: %T", val)
+	}
+}
+
+// convertInterfaceToAttrValue converts a Go interface{} value to a Terraform attr.Value.
+// This is the inverse of convertAttrValueToInterface.
+func convertInterfaceToAttrValue(val interface{}) (attr.Value, *diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	if val == nil {
+		return types.StringNull(), &diags
+	}
+
+	switch v := val.(type) {
+	case string:
+		return types.StringValue(v), &diags
+	case bool:
+		return types.BoolValue(v), &diags
+	case int:
+		return types.Int64Value(int64(v)), &diags
+	case int64:
+		return types.Int64Value(v), &diags
+	case float64:
+		return types.Float64Value(v), &diags
+	case []interface{}:
+		elements := make([]attr.Value, 0, len(v))
+		for _, elem := range v {
+			converted, convertDiags := convertInterfaceToAttrValue(elem)
+			diags.Append(*convertDiags...)
+			if diags.HasError() {
+				return nil, &diags
+			}
+			// Wrap each element in a DynamicValue to ensure consistent type
+			elements = append(elements, types.DynamicValue(converted))
+		}
+		return types.ListValueMust(types.DynamicType, elements), &diags
+	case map[string]interface{}:
+		attrTypes := make(map[string]attr.Type)
+		attrValues := make(map[string]attr.Value)
+
+		for key, elemVal := range v {
+			converted, convertDiags := convertInterfaceToAttrValue(elemVal)
+			diags.Append(*convertDiags...)
+			if diags.HasError() {
+				return nil, &diags
+			}
+			attrTypes[key] = converted.Type(context.Background())
+			attrValues[key] = converted
+		}
+
+		objVal, objDiags := types.ObjectValue(attrTypes, attrValues)
+		diags.Append(objDiags...)
+		return objVal, &diags
+	default:
+		diags.AddError("Unsupported Type Conversion",
+			fmt.Sprintf("Cannot convert Go type %T to Terraform attr.Value", val))
+		return nil, &diags
 	}
 }
