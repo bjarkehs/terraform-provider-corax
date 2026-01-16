@@ -1,3 +1,5 @@
+# Copyright (c) Trifork
+
 openapi: 3.1.0
 info:
   title: Corax API
