@@ -42,7 +42,7 @@ func NewMCPServerResponse(name string, url string, id string, owner string, slug
 	this := MCPServerResponse{}
 	this.Name = name
 	this.Url = url
-	var type_ MCPConnectionType = STREAMABLEHTTP
+	var type_ MCPConnectionType = MCP_CONNECTION_TYPE_STREAMABLEHTTP
 	this.Type = &type_
 	this.Id = id
 	this.Owner = owner
@@ -55,7 +55,7 @@ func NewMCPServerResponse(name string, url string, id string, owner string, slug
 // but it doesn't guarantee that properties required by API are set
 func NewMCPServerResponseWithDefaults() *MCPServerResponse {
 	this := MCPServerResponse{}
-	var type_ MCPConnectionType = STREAMABLEHTTP
+	var type_ MCPConnectionType = MCP_CONNECTION_TYPE_STREAMABLEHTTP
 	this.Type = &type_
 	return &this
 }

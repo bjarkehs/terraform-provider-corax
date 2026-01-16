@@ -20,12 +20,12 @@ type FieldType string
 
 // List of FieldType
 const (
-	TEXT         FieldType = "text"
-	NUMBER       FieldType = "number"
-	BOOLEAN      FieldType = "boolean"
-	URL          FieldType = "url"
-	KEY          FieldType = "key"
-	STRING_ARRAY FieldType = "string_array"
+	FIELD_TYPE_TEXT         FieldType = "text"
+	FIELD_TYPE_NUMBER       FieldType = "number"
+	FIELD_TYPE_BOOLEAN      FieldType = "boolean"
+	FIELD_TYPE_URL          FieldType = "url"
+	FIELD_TYPE_KEY          FieldType = "key"
+	FIELD_TYPE_STRING_ARRAY FieldType = "string_array"
 )
 
 // All allowed values of FieldType enum

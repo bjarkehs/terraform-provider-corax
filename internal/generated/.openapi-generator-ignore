@@ -21,3 +21,17 @@
 #docs/*.md
 # Then explicitly reverse the ignore rule for a single file:
 #!docs/README.md
+
+# Ignore go.mod and go.sum - we want the generated code to be part of the main module
+go.mod
+go.sum
+
+# Ignore files with manually fixed enum constant naming conflicts
+model_field_type.go
+model_evaluation_dataset_output_type.go
+model_streaming_transport.go
+model_mcp_connection_type.go
+
+# Ignore files with references to fixed enum constants
+model_mcp_server_base.go
+model_mcp_server_response.go

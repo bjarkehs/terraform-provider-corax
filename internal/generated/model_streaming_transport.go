@@ -20,8 +20,8 @@ type StreamingTransport string
 
 // List of StreamingTransport
 const (
-	STREAMABLEHTTP StreamingTransport = "streamablehttp"
-	SSE            StreamingTransport = "sse"
+	STREAMING_TRANSPORT_STREAMABLEHTTP StreamingTransport = "streamablehttp"
+	STREAMING_TRANSPORT_SSE            StreamingTransport = "sse"
 )
 
 // All allowed values of StreamingTransport enum

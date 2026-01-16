@@ -20,8 +20,8 @@ type EvaluationDatasetOutputType string
 
 // List of EvaluationDatasetOutputType
 const (
-	TEXT EvaluationDatasetOutputType = "text"
-	JSON EvaluationDatasetOutputType = "json"
+	EVALUATION_DATASET_OUTPUT_TYPE_TEXT EvaluationDatasetOutputType = "text"
+	EVALUATION_DATASET_OUTPUT_TYPE_JSON EvaluationDatasetOutputType = "json"
 )
 
 // All allowed values of EvaluationDatasetOutputType enum

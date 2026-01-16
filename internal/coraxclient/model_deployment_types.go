@@ -30,17 +30,14 @@ type ModelDeploymentCreate struct {
 }
 
 // ModelDeploymentUpdate maps to components.schemas.ModelDeploymentUpdate
-// Note: The API spec for ModelDeploymentUpdate is identical to ModelDeploymentCreate.
-// All fields are required in the API spec for PUT, which is unusual for an update.
-// Typically, updates are partial. If the API truly requires all fields for PUT,
-// the provider's Update method will need to send all current state values.
-// For now, defining struct as partial (pointers) to align with typical update patterns.
-// If API enforces full replacement, this struct and update logic will need adjustment.
+// Note: The API spec for ModelDeploymentUpdate requires all fields for PUT.
+// The API performs a full replacement, not a partial update.
+// The provider's Update method must send all current state values.
 type ModelDeploymentUpdate struct {
-	Name           *string           `json:"name,omitempty"`
-	Description    *string           `json:"description,omitempty"` // Allow clearing description
-	SupportedTasks []string          `json:"supported_tasks,omitempty"`
-	Configuration  map[string]string `json:"configuration,omitempty"`
-	IsActive       *bool             `json:"is_active,omitempty"`
-	ProviderID     *string           `json:"provider_id,omitempty"` // ProviderID might not be updatable, check API behavior
+	Name           string            `json:"name"`
+	Description    *string           `json:"description,omitempty"` // Optional, can be null
+	SupportedTasks []string          `json:"supported_tasks"`
+	Configuration  map[string]string `json:"configuration"`
+	IsActive       *bool             `json:"is_active,omitempty"` // Optional, defaults to true
+	ProviderID     string            `json:"provider_id"`
 }

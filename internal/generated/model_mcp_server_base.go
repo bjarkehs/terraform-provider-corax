@@ -38,7 +38,7 @@ func NewMCPServerBase(name string, url string) *MCPServerBase {
 	this := MCPServerBase{}
 	this.Name = name
 	this.Url = url
-	var type_ MCPConnectionType = STREAMABLEHTTP
+	var type_ MCPConnectionType = MCP_CONNECTION_TYPE_STREAMABLEHTTP
 	this.Type = &type_
 	return &this
 }
@@ -48,7 +48,7 @@ func NewMCPServerBase(name string, url string) *MCPServerBase {
 // but it doesn't guarantee that properties required by API are set
 func NewMCPServerBaseWithDefaults() *MCPServerBase {
 	this := MCPServerBase{}
-	var type_ MCPConnectionType = STREAMABLEHTTP
+	var type_ MCPConnectionType = MCP_CONNECTION_TYPE_STREAMABLEHTTP
 	this.Type = &type_
 	return &this
 }

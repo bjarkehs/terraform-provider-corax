@@ -20,8 +20,8 @@ type MCPConnectionType string
 
 // List of MCPConnectionType
 const (
-	STREAMABLEHTTP MCPConnectionType = "streamablehttp"
-	SSE            MCPConnectionType = "sse"
+	MCP_CONNECTION_TYPE_STREAMABLEHTTP MCPConnectionType = "streamablehttp"
+	MCP_CONNECTION_TYPE_SSE            MCPConnectionType = "sse"
 )
 
 // All allowed values of MCPConnectionType enum
