@@ -161,7 +161,7 @@ func (r *ModelProviderResource) Create(ctx context.Context, req resource.CreateR
 	tflog.Debug(ctx, fmt.Sprintf("Creating Model Provider: %s", apiCreatePayload.Name))
 	createdProvider, err := r.client.CreateModelProvider(ctx, *apiCreatePayload)
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create model provider, got error: %s", err))
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create model provider '%s' (provider_type: %s): %s", apiCreatePayload.Name, apiCreatePayload.ProviderType, err))
 		return
 	}
 
@@ -222,7 +222,7 @@ func (r *ModelProviderResource) Read(ctx context.Context, req resource.ReadReque
 			resp.State.RemoveResource(ctx)
 			return
 		}
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read model provider %s: %s", providerID, err))
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read model provider '%s': %s", providerID, err))
 		return
 	}
 
@@ -289,7 +289,7 @@ func (r *ModelProviderResource) Update(ctx context.Context, req resource.UpdateR
 
 	updatedProvider, err := r.client.UpdateModelProvider(ctx, providerID, *apiUpdatePayload)
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update model provider %s: %s", providerID, err))
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update model provider '%s': %s", providerID, err))
 		return
 	}
 
@@ -330,7 +330,7 @@ func (r *ModelProviderResource) Delete(ctx context.Context, req resource.DeleteR
 			resp.State.RemoveResource(ctx)
 			return
 		}
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete model provider %s: %s", providerID, err))
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete model provider '%s': %s", providerID, err))
 		return
 	}
 

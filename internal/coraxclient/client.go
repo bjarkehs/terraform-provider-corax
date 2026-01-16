@@ -70,7 +70,19 @@ type APIError struct {
 }
 
 func (e *APIError) Error() string {
+	if len(e.Body) > 0 {
+		return fmt.Sprintf("API Error: status %d, body: %s", e.StatusCode, string(e.Body))
+	}
 	return fmt.Sprintf("API Error: status %d, message: %s", e.StatusCode, e.Message)
+}
+
+// Is implements errors.Is interface to allow checking error types.
+// This allows errors.Is(err, ErrNotFound) to work with any 404 APIError.
+func (e *APIError) Is(target error) bool {
+	if t, ok := target.(*APIError); ok {
+		return e.StatusCode == t.StatusCode
+	}
+	return false
 }
 
 // ErrNotFound is returned when a resource is not found (HTTP 404).
@@ -131,7 +143,8 @@ func (c *Client) doRequest(req *http.Request, v interface{}) error {
 			apiErr.Message = http.StatusText(resp.StatusCode)
 		}
 		if resp.StatusCode == http.StatusNotFound {
-			return ErrNotFound
+			apiErr.Message = "resource not found"
+			return apiErr
 		}
 		return apiErr
 	}
