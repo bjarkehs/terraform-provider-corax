@@ -62,3 +62,44 @@ In order to run the full suite of Acceptance tests, run `make testacc`.
 ```shell
 make testacc
 ```
+
+## OpenAPI Generated Client
+
+The API client in `internal/generated/` is auto-generated from the Corax OpenAPI specification.
+
+### Regenerating the Client
+
+1. Install dependencies: `bun install`
+2. Regenerate: `bunx openapi-generator-cli generate`
+
+The generator configuration is in `openapitools.json` and uses the OpenAPI spec from `https://api.corax.app/openapi.json`.
+
+### Manual Fixes Required After Regeneration
+
+The OpenAPI generator produces code with some naming conflicts that require manual fixes. These files are listed in `internal/generated/.openapi-generator-ignore` to prevent them from being overwritten on regeneration.
+
+#### Enum Constant Naming Conflicts
+
+The generator creates duplicate constant names across different enum types. The following files have been manually fixed to prefix constants with their type names:
+
+| File | Change |
+|------|--------|
+| `model_field_type.go` | `TEXT` → `FIELD_TYPE_TEXT`, etc. |
+| `model_evaluation_dataset_output_type.go` | `TEXT` → `EVALUATION_DATASET_OUTPUT_TYPE_TEXT`, etc. |
+| `model_streaming_transport.go` | `STREAMABLEHTTP` → `STREAMING_TRANSPORT_STREAMABLEHTTP`, etc. |
+| `model_mcp_connection_type.go` | `STREAMABLEHTTP` → `MCP_CONNECTION_TYPE_STREAMABLEHTTP`, etc. |
+
+#### Files Referencing Fixed Enum Constants
+
+These files reference the renamed enum constants and must also be preserved:
+
+| File | Change |
+|------|--------|
+| `model_mcp_server_base.go` | Lines 41, 51: `STREAMABLEHTTP` → `MCP_CONNECTION_TYPE_STREAMABLEHTTP` |
+| `model_mcp_server_response.go` | Lines 45, 58: `STREAMABLEHTTP` → `MCP_CONNECTION_TYPE_STREAMABLEHTTP` |
+
+### After Regeneration Checklist
+
+1. Check if any of the ignored files have API changes that need to be manually applied
+2. Verify the build passes: `go build ./...`
+3. Run tests: `go test ./...`

@@ -1,0 +1,28 @@
+{
+  "$schema": "node_modules/@openapitools/openapi-generator-cli/config.schema.json",
+  "spaces": 2,
+  "generator-cli": {
+    "version": "7.18.0",
+    "generators": {
+      "backend-client": {
+        "generatorName": "go",
+        "output": "#{cwd}/internal/generated",
+        "inputSpec": "https://api.corax.app/openapi.json",
+        "skipValidateSpec": true,
+        "ignoreFileOverride": "#{cwd}/.openapi-generator-ignore",
+        "packageName": "api",
+        "modelPackage": "apiModels",
+        "additionalProperties": {
+          "structPrefix": true,
+          "isGoSubmodule": true
+        },
+        "globalProperty": {
+          "apiTests": false,
+          "apiDocs": true,
+          "modelTests": false,
+          "modelDocs": false
+        }
+      }
+    }
+  }
+}

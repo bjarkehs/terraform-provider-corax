@@ -143,67 +143,59 @@ func modelDeploymentResourceModelToAPICreate(ctx context.Context, plan ModelDepl
 }
 
 // Helper to map TF model to API Update struct.
+// The API requires all fields for PUT (full replacement), so we always send the complete state.
 func modelDeploymentResourceModelToAPIUpdate(ctx context.Context, plan ModelDeploymentResourceModel, state ModelDeploymentResourceModel, diags *diag.Diagnostics) (*coraxclient.ModelDeploymentUpdate, bool, error) {
-	apiUpdate := &coraxclient.ModelDeploymentUpdate{}
-	updateNeeded := false
-
-	if !plan.Name.Equal(state.Name) {
-		name := plan.Name.ValueString()
-		apiUpdate.Name = &name
-		updateNeeded = true
-	}
-	if !plan.Description.Equal(state.Description) {
-		if plan.Description.IsNull() {
-			// To clear description, send an empty string or handle as API expects.
-			// For now, let's assume sending null/empty string clears it.
-			// The API client struct uses *string, so sending nil means omit.
-			// If API needs explicit null or empty string, adjust client or here.
-			// For now, if TF model is null, we don't set it in update payload, implying no change unless API treats omission as clear.
-			// If it's an empty string in TF, we send it.
-			if !state.Description.IsNull() { // only send if it was not null before
-				var emptyDesc string
-				apiUpdate.Description = &emptyDesc // Send empty string to clear
-				updateNeeded = true
-			}
-		} else {
-			desc := plan.Description.ValueString()
-			apiUpdate.Description = &desc
-			updateNeeded = true
-		}
-	}
-	if !plan.IsActive.Equal(state.IsActive) {
-		isActive := plan.IsActive.ValueBool()
-		apiUpdate.IsActive = &isActive
-		updateNeeded = true
-	}
+	// Check if ProviderID is being changed (not allowed)
 	if !plan.ProviderID.Equal(state.ProviderID) {
-		// ProviderID is usually not updatable. If API allows, uncomment.
-		// providerID := plan.ProviderID.ValueString()
-		// apiUpdate.ProviderID = &providerID
-		// updateNeeded = true
 		diags.AddWarning("ProviderID Change", "ProviderID cannot be updated for a model deployment. This change will be ignored.")
 	}
 
-	if !plan.SupportedTasks.Equal(state.SupportedTasks) {
-		respDiags := plan.SupportedTasks.ElementsAs(ctx, &apiUpdate.SupportedTasks, false)
-		diags.Append(respDiags...)
-		if diags.HasError() {
-			return nil, false, fmt.Errorf("failed to convert supported_tasks for update")
-		}
-		updateNeeded = true
-	}
-	if !plan.Configuration.Equal(state.Configuration) {
-		configMap := make(map[string]string)
-		respDiags := plan.Configuration.ElementsAs(ctx, &configMap, false)
-		diags.Append(respDiags...)
-		if diags.HasError() {
-			return nil, false, fmt.Errorf("failed to convert configuration for update")
-		}
-		apiUpdate.Configuration = configMap
-		updateNeeded = true
+	// Check if any update is needed by comparing plan to state
+	updateNeeded := !plan.Name.Equal(state.Name) ||
+		!plan.Description.Equal(state.Description) ||
+		!plan.IsActive.Equal(state.IsActive) ||
+		!plan.SupportedTasks.Equal(state.SupportedTasks) ||
+		!plan.Configuration.Equal(state.Configuration)
+
+	if !updateNeeded {
+		return nil, false, nil
 	}
 
-	return apiUpdate, updateNeeded, nil
+	// Build the full update payload from plan (API requires all fields)
+	apiUpdate := &coraxclient.ModelDeploymentUpdate{
+		Name:       plan.Name.ValueString(),
+		ProviderID: state.ProviderID.ValueString(), // Use state, as ProviderID is not updatable
+	}
+
+	// Handle optional description
+	if !plan.Description.IsNull() && !plan.Description.IsUnknown() {
+		desc := plan.Description.ValueString()
+		apiUpdate.Description = &desc
+	}
+
+	// Handle optional is_active
+	if !plan.IsActive.IsNull() && !plan.IsActive.IsUnknown() {
+		isActive := plan.IsActive.ValueBool()
+		apiUpdate.IsActive = &isActive
+	}
+
+	// Convert supported_tasks from TF list to string slice
+	respDiags := plan.SupportedTasks.ElementsAs(ctx, &apiUpdate.SupportedTasks, false)
+	diags.Append(respDiags...)
+	if diags.HasError() {
+		return nil, false, fmt.Errorf("failed to convert supported_tasks for update")
+	}
+
+	// Convert configuration from TF map to string map
+	configMap := make(map[string]string)
+	respDiags = plan.Configuration.ElementsAs(ctx, &configMap, false)
+	diags.Append(respDiags...)
+	if diags.HasError() {
+		return nil, false, fmt.Errorf("failed to convert configuration for update")
+	}
+	apiUpdate.Configuration = configMap
+
+	return apiUpdate, true, nil
 }
 
 // Helper to map API response to TF model.
@@ -319,15 +311,6 @@ func (r *ModelDeploymentResource) Update(ctx context.Context, req resource.Updat
 		resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...) // Ensure state matches plan if no API call
 		return
 	}
-
-	// The API spec for ModelDeploymentUpdate is identical to Create, implying all fields are required.
-	// If the API truly requires all fields for PUT, then apiUpdatePayload must be fully populated from `plan`.
-	// The current modelDeploymentResourceModelToAPIUpdate creates a partial payload.
-	// For now, we proceed with the partial update. If API fails, this needs adjustment.
-	// A safer approach if API requires full object for PUT:
-	// fullApiPayloadForUpdate, convErr := modelDeploymentResourceModelToAPICreate(ctx, plan, &resp.Diagnostics) // Use create mapper
-	// if convErr != nil || resp.Diagnostics.HasError() { return }
-	// updatedDeployment, err := r.client.UpdateModelDeployment(ctx, deploymentID, *fullApiPayloadForUpdate)
 
 	updatedDeployment, err := r.client.UpdateModelDeployment(ctx, deploymentID, *apiUpdatePayload)
 	if err != nil {
